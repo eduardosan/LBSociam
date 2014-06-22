@@ -10,7 +10,7 @@ data_dir = /srv/lbsociam-py2/nlpnet_data
 [twitter]
 sources = ['OficialJBr', 'Jornal_MetroBSB']
 hashtags = ['#tvbrasilia']
-consumer_key = oesD8ZRV1bnrmaIaLRumA
-consumer_secret = BK6yZafsmOWM6NVgCHapYr5mOXGJqW9qHwc1i0jVhw
-access_token = 37455565-xJXfCttVzXBU1ICaYToQqqrazRUAfn6Mddi2csSMf
-access_secret = tyhiDJCFo5wElJRppyYGQ1ZVQoIPKlJ73fsQP1nPppWPq
+consumer_key =
+consumer_secret =
+access_token =
+access_secret =
