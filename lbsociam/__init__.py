@@ -30,3 +30,4 @@ class LBSociam(object):
         self.twitter_access_token = config.get('twitter', 'access_token')
         self.twitter_access_secret = config.get('twitter', 'access_secret')
         self.lbsociam_data_dir = config.get('lbsociam', 'data_dir')
+        self.lbgenerator_rest_url = config.get('lbgenerator', 'rest_url')

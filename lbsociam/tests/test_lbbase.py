@@ -1,6 +1,6 @@
 #!/usr/env python
 # -*- coding: utf-8 -*-
-import os
+import lbsociam
 import unittest
 
 class LBBaseTestCase(unittest.TestCase):
@@ -18,6 +18,7 @@ class LBBaseTestCase(unittest.TestCase):
         """
         Test communication to LB database
         """
+        lbs = lbsociam.LBSociam()
 
     def tearDown(self):
         """
