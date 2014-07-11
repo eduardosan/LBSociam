@@ -40,7 +40,7 @@ class ImportTestCase(unittest.TestCase):
         """
         Test reading twitter hashtag
         """
-        lbt = lbtwitter.Twitter(debug=False, term='#tvbrasilia')
+        lbt = lbtwitter.Twitter(debug=False, term='#brasil')
         hashtag = lbt.hashtag
         assert isinstance(hashtag, twitter.Hashtag)
 
@@ -48,7 +48,7 @@ class ImportTestCase(unittest.TestCase):
         """
         Test twitter term search
         """
-        lbt = lbtwitter.Twitter(debug=False, term='#tvbrasilia')
+        lbt = lbtwitter.Twitter(debug=False, term='Brasil')
         status = lbt.search()
         assert len(status) > 0
 
@@ -56,9 +56,12 @@ class ImportTestCase(unittest.TestCase):
         """
         Test convert results to JSON format
         """
-        lbt = lbtwitter.Twitter(debug=False, term='#tvbrasilia')
+        lbt = lbtwitter.Twitter(debug=False, term='Brasil')
         status = lbt.search()
         json_status = lbt.statusToJSON(status)
+        fd = open('/tmp/test.json', 'w+')
+        fd.write(json_status)
+        fd.close()
         assert json.loads(json_status)
 
     def tearDown(self):

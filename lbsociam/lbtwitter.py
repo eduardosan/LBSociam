@@ -56,4 +56,4 @@ class Twitter(LBSociam):
         """
         Transform a status list in a JSON list
         """
-        return json.dumps([dict(mpn=pn) for pn in status], cls=encoders.JSONEncoder)
+        return json.dumps([dict(status=pn) for pn in status], cls=encoders.JSONEncoder)

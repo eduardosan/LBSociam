@@ -29,5 +29,10 @@ class LBSociam(object):
         self.twitter_consumer_secret = config.get('twitter', 'consumer_secret')
         self.twitter_access_token = config.get('twitter', 'access_token')
         self.twitter_access_secret = config.get('twitter', 'access_secret')
-        self.lbsociam_data_dir = config.get('lbsociam', 'data_dir')
         self.lbgenerator_rest_url = config.get('lbgenerator', 'rest_url')
+        lbsociam_data_dir = config.get('lbsociam', 'data_dir')
+        if os.path.isdir(lbsociam_data_dir):
+            self.lbsociam_data_dir = lbsociam_data_dir
+        else:
+            os.mkdir(lbsociam_data_dir)
+            self.lbsociam_data_dir = lbsociam_data_dir
