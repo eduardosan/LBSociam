@@ -5,7 +5,7 @@ import unittest
 import twitter
 import json
 
-from lbsociam import lbtwitter
+from lbsociam.model import lbtwitter
 from lbsociam import LBSociam
 
 class ImportTestCase(unittest.TestCase):
@@ -34,13 +34,13 @@ class ImportTestCase(unittest.TestCase):
         lbt = lbtwitter.Twitter(debug=True)
         api = lbt.api
         results = api.VerifyCredentials()
-        assert isinstance(results, twitter.User) 
+        assert isinstance(results, twitter.User)
 
     def test_twitter_hastag(self):
         """
         Test reading twitter hashtag
         """
-        lbt = lbtwitter.Twitter(debug=False, term='#tvbrasilia')
+        lbt = lbtwitter.Twitter(debug=True, term='#tvbrasilia')
         hashtag = lbt.hashtag
         assert isinstance(hashtag, twitter.Hashtag)
 
@@ -48,7 +48,7 @@ class ImportTestCase(unittest.TestCase):
         """
         Test twitter term search
         """
-        lbt = lbtwitter.Twitter(debug=False, term='#tvbrasilia')
+        lbt = lbtwitter.Twitter(debug=True, term='crime')
         status = lbt.search()
         assert len(status) > 0
 
@@ -56,9 +56,12 @@ class ImportTestCase(unittest.TestCase):
         """
         Test convert results to JSON format
         """
-        lbt = lbtwitter.Twitter(debug=False, term='#tvbrasilia')
+        lbt = lbtwitter.Twitter(debug=True, term='crime')
         status = lbt.search()
         json_status = lbt.statusToJSON(status)
+        fd = open('/tmp/status.json', 'w+')
+        fd.write(json_status)
+        fd.close()
         assert json.loads(json_status)
 
     def tearDown(self):

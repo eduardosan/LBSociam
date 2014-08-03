@@ -75,7 +75,7 @@ mkdir /srv/lbsociam-py2/nlpnet_data
 
 <pre>
 cd /srv/lbsociam-py2/nlpnet_data
-wget http://nilc.icmc.usp.br/nlpnet/nlpnet-srl.zipi
+wget http://nilc.icmc.usp.br/nlpnet/nlpnet-srl.zip
 unzip nlpnet-srl.zip
 rm nlpnet-srl.zip
 mv srl/* .

@@ -1,9 +1,15 @@
 #!/usr/env python
 # -*- coding: utf-8 -*-
+__author__ = 'eduardo'
 import twitter
 import json
 from lbsociam import encoders
 from lbsociam import LBSociam
+from liblightbase.lbbase.struct import Base, BaseMetadata
+from liblightbase.lbbase.lbstruct.group import *
+from liblightbase.lbbase.lbstruct.field import *
+from liblightbase.lbbase.content import Content
+
 
 class Twitter(LBSociam):
     """
@@ -57,3 +63,23 @@ class Twitter(LBSociam):
         Transform a status list in a JSON list
         """
         return json.dumps([dict(mpn=pn) for pn in status], cls=encoders.JSONEncoder)
+
+    def createBase(self, status):
+        """
+        Create a base to hold twitter information on Lightbase
+
+        :param status: One twitter status object to be base model
+        :return: LB Base object
+        """
+        # FIXME: Remove this call to __dict__ attribuite, as it is unstable
+        fields_list = status.__dict__
+        for status_field in fields_list:
+            field = dict(
+                name = status_field,
+                alias= status_field,
+                description = status_field,
+                datatype = type(status_field),
+                indices = ['Text'],
+                multivalued = False,
+                required = False
+            )
