@@ -5,10 +5,8 @@ import twitter
 import json
 from lbsociam import encoders
 from lbsociam import LBSociam
-from liblightbase.lbbase.struct import Base, BaseMetadata
-from liblightbase.lbbase.lbstruct.group import *
-from liblightbase.lbbase.lbstruct.field import *
-from liblightbase.lbbase.content import Content
+from liblightbase.lbutils import conv
+from liblightbase import lbrest
 
 
 class Twitter(LBSociam):
@@ -21,6 +19,7 @@ class Twitter(LBSociam):
         self.term = term
         self.api = None
         self.hashtag = None
+        self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
 
     @property
     def api(self):
@@ -79,15 +78,9 @@ class Twitter(LBSociam):
         :param status: One twitter status object to be base model
         :return: LB Base object
         """
-        # FIXME: Remove this call to __dict__ attribuite, as it is unstable
-        fields_list = status.__dict__
-        for status_field in fields_list:
-            field = dict(
-                name = status_field,
-                alias= status_field,
-                description = status_field,
-                datatype = type(status_field),
-                indices = ['Text'],
-                multivalued = False,
-                required = False
-            )
+        lbbase = conv.pyobject2base(status)
+        response = self.baserest.create(lbbase)
+        if response.status == 200:
+            return lbbase
+        else:
+            return None

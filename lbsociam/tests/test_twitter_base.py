@@ -53,6 +53,14 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         b = conv.json2base(j)
         self.assertIsInstance(b, Base)
 
+    def test_create_base(self):
+        """
+        Test Base object creation from Twitter class method
+        """
+        status = self.lbt.search()
+        lbbase = self.lbt.createBase(status[0])
+        self.assertIsInstance(lbbase, Base)
+
     def test_status_to_document(self):
         """
         Test Status conversion to LB Document
