@@ -58,7 +58,7 @@ class TwitterImportTestCase(unittest.TestCase):
         """
         lbt = lbtwitter.Twitter(debug=True, term='crime')
         status = lbt.search()
-        json_status = lbt.statusToJSON(status)
+        json_status = lbt.status_to_json(status)
         fd = open('/tmp/status.json', 'w+')
         fd.write(json_status)
         fd.close()

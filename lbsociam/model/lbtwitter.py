@@ -5,10 +5,8 @@ import twitter
 import json
 from lbsociam import encoders
 from lbsociam import LBSociam
-from liblightbase.lbbase.struct import Base, BaseMetadata
-from liblightbase.lbbase.lbstruct.group import *
-from liblightbase.lbbase.lbstruct.field import *
-from liblightbase.lbbase.content import Content
+from liblightbase.lbutils import conv
+from liblightbase import lbrest
 
 
 class Twitter(LBSociam):
@@ -21,6 +19,7 @@ class Twitter(LBSociam):
         self.term = term
         self.api = None
         self.hashtag = None
+        self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
 
     @property
     def api(self):
@@ -58,36 +57,48 @@ class Twitter(LBSociam):
 
         return status_list
 
-    def statusToJSON(self, status):
+    def status_to_json(self, status):
         """
         Transform a status list in a JSON list
         """
-        return json.dumps([dict(status=pn) for pn in status], cls=encoders.JSONEncoder)
+        return json.dumps([pn for pn in status], cls=encoders.JSONEncoder)
 
-    def statusToDict(self, status):
+    def status_to_dict(self, status):
         """
         Convert Status object to dict
         :param status: Twitter Status object
         :return: Twitter status Dict
         """
-        return [dict(status=pn) for pn in status]
+        status_json = self.status_to_json(status)
+        return json.loads(status_json)
 
-    def createBase(self, status):
+    def create_base(self, status):
         """
         Create a base to hold twitter information on Lightbase
 
         :param status: One twitter status object to be base model
         :return: LB Base object
         """
-        # FIXME: Remove this call to __dict__ attribuite, as it is unstable
-        fields_list = status.__dict__
-        for status_field in fields_list:
-            field = dict(
-                name = status_field,
-                alias= status_field,
-                description = status_field,
-                datatype = type(status_field),
-                indices = ['Text'],
-                multivalued = False,
-                required = False
-            )
+        # Remove repeated elements
+        del status._user._created_at
+        del status._user._location
+
+        lbbase = conv.pyobject2base(status)
+        response = self.baserest.create(lbbase)
+        if response.status_code == 200:
+            return lbbase
+        else:
+            return None
+
+    def remove_base(self, lbbase):
+        """
+        Remove base from Lightbase
+        :param lbbase: LBBase object instance
+        :return: True or Error if base was not excluded
+        """
+
+        response = self.baserest.delete(lbbase)
+        if response.status_code == 200:
+            return True
+        else:
+            raise IOError('Erro excluding base from LB')
