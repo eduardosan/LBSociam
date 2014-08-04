@@ -10,7 +10,8 @@ requires = [
     'python-twitter',
     'nlpnet',
     'nltk',
-    'rdflib'
+    'rdflib',
+    'oauthlib'
     ]
 
 
