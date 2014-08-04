@@ -8,7 +8,7 @@ import json
 from lbsociam.model import lbtwitter
 from lbsociam import LBSociam
 
-class ImportTestCase(unittest.TestCase):
+class TwitterImportTestCase(unittest.TestCase):
     """
     Test data import on twitter
     """

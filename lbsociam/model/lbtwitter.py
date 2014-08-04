@@ -62,7 +62,15 @@ class Twitter(LBSociam):
         """
         Transform a status list in a JSON list
         """
-        return json.dumps([dict(mpn=pn) for pn in status], cls=encoders.JSONEncoder)
+        return json.dumps([dict(status=pn) for pn in status], cls=encoders.JSONEncoder)
+
+    def statusToDict(self, status):
+        """
+        Convert Status object to dict
+        :param status: Twitter Status object
+        :return: Twitter status Dict
+        """
+        return [dict(status=pn) for pn in status]
 
     def createBase(self, status):
         """
