@@ -18,7 +18,9 @@ class TwitterImportTestCase(unittest.TestCase):
         """
         lbsociam = LBSociam()
         self.data_dir = os.path.join(lbsociam.lbsociam_data_dir, 'tests')
-        os.mkdir(self.data_dir)
+        if not os.path.isdir(self.data_dir):
+            os.mkdir(self.data_dir)
+
         pass
 
     def test_dir(self):

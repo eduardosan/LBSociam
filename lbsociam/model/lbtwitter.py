@@ -20,6 +20,7 @@ class Twitter(LBSociam):
         self.api = None
         self.hashtag = None
         self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
+        self.base = None
 
     @property
     def api(self):
@@ -51,18 +52,18 @@ class Twitter(LBSociam):
     @staticmethod
     def status_to_json(status):
         """
-        Transform a status list in a JSON list
+        Search public timeline
         """
         return json.dumps([pn for pn in status], cls=encoders.JSONEncoder)
 
-    @staticmethod
-    def status_to_dict(status):
+    def status_to_dict(self, status):
         """
         Convert Status object to dict
         :param status: Twitter Status object
         :return: Twitter status Dict
         """
-        return [pn.__dict__ for pn in status]
+        status_json = self.status_to_json(status)
+        return json.loads(status_json)
 
     @property
     def base(self):
@@ -79,25 +80,34 @@ class Twitter(LBSociam):
         :param status: One twitter status object to be base model
         :return: LB Base object
         """
-        lbbase = conv.pyobject2base(status)
-        response = self.baserest.create(lbbase)
-        if response.status_code == 200:
-            self._base = lbbase
+        if status is None:
+            self._base = None
         else:
-            self._base =  None
+            # Remove repeated elements
+            del status._user._created_at
+            del status._user._location
 
-    @base.getter
-    def base(self):
-        return self._base
+            lbbase = conv.pyobject2base(status)
+            response = self.baserest.create(lbbase)
+            print(response.status_code)
+            if response.status_code == 200:
+                self._base = lbbase
+            else:
+                self._base = None
 
     @base.deleter
     def base(self):
         """
-        Remove base when removing attribute
+        Remove base from Lightbase
+        :param lbbase: LBBase object instance
+        :return: True or Error if base was not excluded
         """
+
         response = self.baserest.delete(self._base)
         if response.status_code == 200:
             del self._base
+        else:
+            raise IOError('Error excluding base from LB')
 
     def search(self):
         """
