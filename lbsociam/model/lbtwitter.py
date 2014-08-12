@@ -20,7 +20,6 @@ class Twitter(LBSociam):
         self.api = None
         self.hashtag = None
         self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
-        self._base = None
 
     @property
     def api(self):
