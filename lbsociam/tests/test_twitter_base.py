@@ -22,7 +22,7 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
 
         self.lbs = lbsociam.LBSociam()
         self.baserest = lbrest.BaseREST(rest_url=self.lbs.lbgenerator_rest_url, response_object=True)
-        self.lbt = lbtwitter.Twitter(debug=True, term='crime')
+        self.lbt = lbtwitter.Twitter(debug=False, term='crime')
         pass
 
     def test_communication(self):
@@ -58,18 +58,21 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         Test Base object creation from Twitter class method
         """
         status = self.lbt.search()
-        lbbase = self.lbt.createBase(status[0])
-        self.assertIsInstance(lbbase, Base)
+        self.lbt.base = status[0]
+        self.assertIsInstance(self.lbt.base, Base)
+        del self.lbt.base
+        pass
 
     def test_status_to_document(self):
         """
         Test Status conversion to LB Document
         """
         status = self.lbt.search()
-        lbbase = conv.pyobject2base(status[0])
-        TwitterStatus = lbbase.metaclass()
-        status_json = self.lbt.statusToJSON(status)
-        status_obj = conv.json2document(lbbase, status_json[0])
+        self.lbt.base = status[0]
+        TwitterStatus = self.lbt.base.metaclass()
+        status_dict = self.lbt.status_to_dict(status)
+        status_obj = conv.dict2document(self.lbt.base, status_dict[0])
+        del self.lbt.base
         self.assertIsInstance(status_obj, TwitterStatus)
 
     def tearDown(self):

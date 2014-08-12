@@ -48,6 +48,57 @@ class Twitter(LBSociam):
         """
         self._hashtag = twitter.Hashtag(self.term)
 
+    @staticmethod
+    def status_to_json(status):
+        """
+        Transform a status list in a JSON list
+        """
+        return json.dumps([pn for pn in status], cls=encoders.JSONEncoder)
+
+    @staticmethod
+    def status_to_dict(status):
+        """
+        Convert Status object to dict
+        :param status: Twitter Status object
+        :return: Twitter status Dict
+        """
+        return [pn.__dict__ for pn in status]
+
+    @property
+    def base(self):
+        """
+        @property base
+        :return:
+        """
+        return self._base
+
+    @base.setter
+    def base(self, status):
+        """
+        Create a base to hold twitter information on Lightbase
+        :param status: One twitter status object to be base model
+        :return: LB Base object
+        """
+        lbbase = conv.pyobject2base(status)
+        response = self.baserest.create(lbbase)
+        if response.status_code == 200:
+            self._base = lbbase
+        else:
+            self._base =  None
+
+    @base.getter
+    def base(self):
+        return self._base
+
+    @base.deleter
+    def base(self):
+        """
+        Remove base when removing attribute
+        """
+        response = self.baserest.delete(self._base)
+        if response.status_code == 200:
+            del self._base
+
     def search(self):
         """
         Search public timeline
@@ -56,31 +107,3 @@ class Twitter(LBSociam):
           since_id=None, lang='pt')
 
         return status_list
-
-    def statusToJSON(self, status):
-        """
-        Transform a status list in a JSON list
-        """
-        return json.dumps([dict(status=pn) for pn in status], cls=encoders.JSONEncoder)
-
-    def statusToDict(self, status):
-        """
-        Convert Status object to dict
-        :param status: Twitter Status object
-        :return: Twitter status Dict
-        """
-        return [dict(status=pn) for pn in status]
-
-    def createBase(self, status):
-        """
-        Create a base to hold twitter information on Lightbase
-
-        :param status: One twitter status object to be base model
-        :return: LB Base object
-        """
-        lbbase = conv.pyobject2base(status)
-        response = self.baserest.create(lbbase)
-        if response.status == 200:
-            return lbbase
-        else:
-            return None
