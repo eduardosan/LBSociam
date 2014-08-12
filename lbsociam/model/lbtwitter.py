@@ -20,7 +20,6 @@ class Twitter(LBSociam):
         self.api = None
         self.hashtag = None
         self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
-        self._base = None
 
     @property
     def api(self):
@@ -64,6 +63,10 @@ class Twitter(LBSociam):
         # Remove repeated elements
         del status._user._created_at
         del status._user._location
+        print('11111111111111111111111111111')
+        for i in xrange(1,len(status.media)):
+            print(status.media[i])
+            del status.media[i].sizes
 
         lbbase = conv.pyobject2base(status)
         response = self.baserest.create(lbbase)

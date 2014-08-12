@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 import lbsociam
 import unittest
+import datetime
 from liblightbase import lbrest
 from lbsociam.model import lbtwitter
 from liblightbase.lbutils import conv
 from liblightbase.lbbase.struct import Base
+from lbsociam.model import lbstatus
 
 from . import test_twitter_import
 
@@ -23,59 +25,30 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         self.lbs = lbsociam.LBSociam()
         self.baserest = lbrest.BaseREST(rest_url=self.lbs.lbgenerator_rest_url, response_object=True)
         self.lbt = lbtwitter.Twitter(debug=False, term='crime')
+        self.status_base = lbstatus.StatusBase()
         pass
 
-    def test_communication(self):
+    def test_status_insert(self):
         """
-        Test communication to LB database
+        Insert twitter status on Base
         """
-        response = self.baserest.search()
-        assert response.status_code == 200
+        tw_status = self.lbt.search()
+        tw_status_elm = [tw_status[0]]
+        tw_status_json = self.lbt.status_to_json(tw_status_elm)
 
-    def test_generate_base(self):
-        """
-        Auto generate LBBase from status object
-        """
-        status = self.lbt.search()
-        # Remove repeated elements
-        status_elm = status[0]
-        del status_elm._user._created_at
-        del status_elm._user._location
+        lbbase = self.status_base.create_base()
 
-        lbbase = conv.pyobject2base(status_elm)
-        fd = open('/tmp/status_base.json', 'w+')
-        fd.write(lbbase.json)
-        fd.close()
-        self.assertIsInstance(lbbase, Base)
+        status = lbstatus.Status(
+            origin='twitter',
+            inclusion_date=datetime.datetime.now(),
+            source=tw_status_json,
+            status_base=self.status_base
+        )
 
-    def test_base_to_json(self):
-        """
-        Test auto generated base json conversion back to base
-        """
-        status = self.lbt.search()
-        # Remove repeated elements
-        status_elm = status[0]
-        del status_elm._user._created_at
-        del status_elm._user._location
-
-        lbbase = conv.pyobject2base(status_elm)
-        j = lbbase.json
-        b = conv.json2base(j)
-        self.assertIsInstance(b, Base)
-
-    def test_create_base(self):
-        """
-        Test Base object creation from Twitter class method
-        """
-        status = self.lbt.search()
-        # Remove repeated elements
-        status_elm = status[0]
-
-        #lbbase = conv.pyobject2base(status_elm)
-        self.lbt.base = status_elm
-        self.assertIsInstance(self.lbt.base, Base)
-        del self.lbt.base
-        self.assertIsNone(getattr(self, 'base', None))
+        retorno = status.create_status()
+        self.assertEqual(retorno, 1)
+        retorno = self.status_base.remove_base()
+        self.assertTrue(retorno)
 
     def test_status_to_document(self):
         """
@@ -88,13 +61,14 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         # Create Base
         #lbbase = conv.pyobject2base(status_elm)
         self.lbt.base = status_elm
+        self.assertIsInstance(self.lbt.base, Base)
 
-        # Create object from base
         TwitterStatus = self.lbt.base.metaclass()
+        print(type(TwitterStatus))
         status_dict = self.lbt.status_to_dict(status)
-        print(status_dict[0]['_user'].keys())
-        status_obj = conv.json2document(self.lbt.base, status_dict[0])
-        self.assertIsInstance(status_obj, TwitterStatus)
+        #print(status_dict[0])
+        status_obj = conv.dict2document(self.lbt.base, status_dict[0])
+        self.assertIsNotNone(status_obj)
         del self.lbt.base
         self.assertIsNone(self.lbt.base)
 
@@ -102,5 +76,7 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         """
         Clear test data
         """
+        #self.status_base.remove_base()
+
         test_twitter_import.TwitterImportTestCase.tearDown(self)
         pass
