@@ -20,6 +20,7 @@ class Twitter(LBSociam):
         self.api = None
         self.hashtag = None
         self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
+        self._base = None
 
     @property
     def api(self):
@@ -48,28 +49,9 @@ class Twitter(LBSociam):
         """
         self._hashtag = twitter.Hashtag(self.term)
 
-    @staticmethod
-    def status_to_json(status):
-        """
-        Transform a status list in a JSON list
-        """
-        return json.dumps([pn for pn in status], cls=encoders.JSONEncoder)
-
-    @staticmethod
-    def status_to_dict(status):
-        """
-        Convert Status object to dict
-        :param status: Twitter Status object
-        :return: Twitter status Dict
-        """
-        return [pn.__dict__ for pn in status]
-
     @property
     def base(self):
-        """
-        @property base
-        :return:
-        """
+        #print(self.__dict__)
         return self._base
 
     @base.setter
@@ -79,25 +61,46 @@ class Twitter(LBSociam):
         :param status: One twitter status object to be base model
         :return: LB Base object
         """
+        # Remove repeated elements
+        del status._user._created_at
+        del status._user._location
+
         lbbase = conv.pyobject2base(status)
         response = self.baserest.create(lbbase)
+        #print(response.status_code)
         if response.status_code == 200:
             self._base = lbbase
         else:
-            self._base =  None
-
-    @base.getter
-    def base(self):
-        return self._base
+            self._base = None
 
     @base.deleter
     def base(self):
         """
-        Remove base when removing attribute
+        Remove base from Lightbase
+        :param lbbase: LBBase object instance
+        :return: True or Error if base was not excluded
         """
         response = self.baserest.delete(self._base)
         if response.status_code == 200:
             del self._base
+        else:
+            raise IOError('Error excluding base from LB')
+
+    @staticmethod
+    def status_to_json(status):
+        """
+        Search public timeline
+        """
+        return json.dumps([pn for pn in status], cls=encoders.JSONEncoder)
+
+    def status_to_dict(self, status):
+        """
+        Convert Status object to dict
+        :param status: Twitter Status object
+        :return: Twitter status Dict
+        """
+        status_json = self.status_to_json(status)
+        return json.loads(status_json)
 
     def search(self):
         """

@@ -37,7 +37,12 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         Auto generate LBBase from status object
         """
         status = self.lbt.search()
-        lbbase = conv.pyobject2base(status[0])
+        # Remove repeated elements
+        status_elm = status[0]
+        del status_elm._user._created_at
+        del status_elm._user._location
+
+        lbbase = conv.pyobject2base(status_elm)
         fd = open('/tmp/status_base.json', 'w+')
         fd.write(lbbase.json)
         fd.close()
@@ -48,7 +53,12 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         Test auto generated base json conversion back to base
         """
         status = self.lbt.search()
-        lbbase = conv.pyobject2base(status[0])
+        # Remove repeated elements
+        status_elm = status[0]
+        del status_elm._user._created_at
+        del status_elm._user._location
+
+        lbbase = conv.pyobject2base(status_elm)
         j = lbbase.json
         b = conv.json2base(j)
         self.assertIsInstance(b, Base)
@@ -58,22 +68,35 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         Test Base object creation from Twitter class method
         """
         status = self.lbt.search()
-        self.lbt.base = status[0]
+        # Remove repeated elements
+        status_elm = status[0]
+
+        #lbbase = conv.pyobject2base(status_elm)
+        self.lbt.base = status_elm
         self.assertIsInstance(self.lbt.base, Base)
         del self.lbt.base
-        pass
+        self.assertIsNone(getattr(self, 'base', None))
 
     def test_status_to_document(self):
         """
         Test Status conversion to LB Document
         """
         status = self.lbt.search()
-        self.lbt.base = status[0]
+        # Remove repeated elements
+        status_elm = status[0]
+
+        # Create Base
+        #lbbase = conv.pyobject2base(status_elm)
+        self.lbt.base = status_elm
+
+        # Create object from base
         TwitterStatus = self.lbt.base.metaclass()
         status_dict = self.lbt.status_to_dict(status)
-        status_obj = conv.dict2document(self.lbt.base, status_dict[0])
-        del self.lbt.base
+        print(status_dict[0]['_user'].keys())
+        status_obj = conv.json2document(self.lbt.base, status_dict[0])
         self.assertIsInstance(status_obj, TwitterStatus)
+        del self.lbt.base
+        self.assertIsNone(self.lbt.base)
 
     def tearDown(self):
         """
