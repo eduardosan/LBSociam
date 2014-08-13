@@ -3,6 +3,7 @@
 __author__ = 'eduardo'
 import datetime
 import json
+import nlpnet
 from lbsociam import LBSociam
 from liblightbase import lbrest
 from liblightbase.lbutils import conv
@@ -86,6 +87,16 @@ class StatusBase(LBSociam):
             required = True
         ))
 
+        text = Field(**dict(
+            name='text',
+            alias='text',
+            description='Status original text',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=False,
+            required=True
+        ))
+
 
         base_metadata = BaseMetadata(**dict(
             name = 'status',
@@ -101,6 +112,7 @@ class StatusBase(LBSociam):
 
         content_list = Content()
         content_list.append(inclusion_date)
+        content_list.append(text)
         content_list.append(origin)
         content_list.append(source)
 
@@ -115,7 +127,7 @@ class Status(LBSociam):
     """
     Class to hold status elements
     """
-    def __init__(self, inclusion_date, source, origin, status_base):
+    def __init__(self, inclusion_date, source, origin, status_base, text):
         """
         Construct for social networks data
         :return:
@@ -124,6 +136,7 @@ class Status(LBSociam):
         self.inclusion_date = inclusion_date
         self.source = source
         self.origin = origin
+        self.text = text
         self.status_base = status_base
         self.documentrest = lbrest.DocumentREST(
             rest_url=self.lbgenerator_rest_url,
@@ -148,6 +161,19 @@ class Status(LBSociam):
         self._inclusion_date = value
 
     @property
+    def inclusion_date_str(self):
+        """
+        :return: Property in standard format
+        """
+
+    @inclusion_date_str.getter
+    def inclusion_date_str(self):
+        """
+        :return:
+        """
+        return self.inclusion_date.strftime("%d/%m/%Y")
+
+    @property
     def status_base(self):
         """
         Status base
@@ -162,15 +188,27 @@ class Status(LBSociam):
         assert isinstance(value, StatusBase), "It has be an instance of StatusBase"
         self._status_base = value
 
+    @property
+    def lbstatus(self):
+        """
+        Get LB Status object
+        :return: LB Metaclass for status
+        """
+        lbstatus = conv.dict2document(self.status_base.lbbase, self.status_to_dict())
+        return lbstatus
+
     def status_to_dict(self):
         """
         Convert status object to Python dict
         :return:
         """
         saida = {
-            'inclusion_date': self.inclusion_date,
+            'inclusion_date': self.inclusion_date_str,
+            'text': self.text,
             'source': self.source,
-            'origin': self.origin
+            'origin': self.origin,
+            'tokens': self.tokens,
+            'arg_structures': self.arg_structures
         }
 
         return saida
@@ -181,7 +219,7 @@ class Status(LBSociam):
         :return:
         """
         saida = self.status_to_dict()
-        saida['inclusion_date'] = self.inclusion_date.strftime("%d/%m/%Y")
+        saida['inclusion_date'] = self.inclusion_date_str
         return json.dumps(saida)
 
     def create_status(self):
@@ -192,3 +230,26 @@ class Status(LBSociam):
         """
         document = self.status_to_json()
         return self.documentrest.create(document)
+
+    @property
+    def tokens(self):
+        """
+        :return: SRL tokenizer object
+        """
+        return self._tokens
+
+    @property
+    def arg_structures(self):
+        """
+        :return: SRL arg structures
+        """
+        return self._arg_structures
+
+    def srl_tokenize(self):
+        """
+        SRL tokenized attributes initialization
+        """
+        tagger = nlpnet.SRLTagger()
+        sent = tagger.tag(self.text)
+        self._tokens = sent[0].tokens
+        self._arg_structures = sent[0].arg_structures
