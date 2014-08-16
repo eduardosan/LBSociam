@@ -28,6 +28,11 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         self.lbt = lbtwitter.Twitter(debug=False, term='crime')
         self.status_base = lbstatus.StatusBase()
         self.tw_status = self.lbt.search()
+
+        # Debug
+        fd = open('/tmp/status_base.json', 'w+')
+        fd.write(self.status_base.lbbase.json)
+        fd.close()
         pass
 
     def test_status_insert(self):
@@ -101,7 +106,7 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         """
         Test tokenized attributes store on Status Object
         """
-        tw_status_elm = [self.tw_status[0]]
+        tw_status_elm = [self.tw_status[1]]
         tw_status_json = self.lbt.status_to_json(tw_status_elm)
 
         lbbase = self.status_base.create_base()
@@ -124,6 +129,11 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
 
         self.assertGreaterEqual(len(status.tokens), 0)
         self.assertGreaterEqual(len(status.arg_structures), 0)
+
+        # Debug status JSON
+        fd = open('/tmp/status_converted.json', 'w+')
+        fd.write(status.status_to_json())
+        fd.close()
 
         retorno = self.status_base.remove_base()
         self.assertTrue(retorno)

@@ -48,47 +48,6 @@ class Twitter(LBSociam):
         """
         self._hashtag = twitter.Hashtag(self.term)
 
-    @property
-    def base(self):
-        #print(self.__dict__)
-        return self._base
-
-    @base.setter
-    def base(self, status):
-        """
-        Create a base to hold twitter information on Lightbase
-        :param status: One twitter status object to be base model
-        :return: LB Base object
-        """
-        # Remove repeated elements
-        del status._user._created_at
-        del status._user._location
-        print('11111111111111111111111111111')
-        for i in xrange(1,len(status.media)):
-            print(status.media[i])
-            del status.media[i].sizes
-
-        lbbase = conv.pyobject2base(status)
-        response = self.baserest.create(lbbase)
-        #print(response.status_code)
-        if response.status_code == 200:
-            self._base = lbbase
-        else:
-            self._base = None
-
-    @base.deleter
-    def base(self):
-        """
-        Remove base from Lightbase
-        :param lbbase: LBBase object instance
-        :return: True or Error if base was not excluded
-        """
-        response = self.baserest.delete(self._base)
-        if response.status_code == 200:
-            del self._base
-        else:
-            raise IOError('Error excluding base from LB')
-
     @staticmethod
     def status_to_json(status):
         """
@@ -105,11 +64,11 @@ class Twitter(LBSociam):
         status_json = self.status_to_json(status)
         return json.loads(status_json)
 
-    def search(self):
+    def search(self, count=15):
         """
         Search public timeline
         """
         status_list = self.api.GetSearch(geocode=None, term=self.term,
-          since_id=None, lang='pt')
+          since_id=None, lang='pt', count=count)
 
         return status_list

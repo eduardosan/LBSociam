@@ -11,12 +11,13 @@ requires = [
     'nlpnet',
     'nltk',
     'rdflib',
-    'oauthlib'
+    'oauthlib',
+    'PasteScript'
     ]
 
 
 setup(name='LBSociam',
-      version='0.1',
+      version='0.2',
       description='LBSociam',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
@@ -36,6 +37,8 @@ setup(name='LBSociam',
       tests_require=requires,
       test_suite="lbsociam",
       entry_points = """\
+      [paste.paster_command]
+        lbtwitter = lbsociam.commands:TwitterCommands
       """,
       )
 

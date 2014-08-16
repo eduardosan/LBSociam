@@ -15,5 +15,34 @@ consumer_secret =
 access_token =
 access_secret =
 
-[lbgenerator]
-rest_url = http://localhost/api
+# Begin logging configuration
+
+[loggers]
+keys = root, lbsociam
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = DEBUG
+handlers = console
+
+[logger_lbsociam]
+level = DEBUG
+handlers =
+qualname = lbgenerator
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = DEBUG
+formatter = generic
+
+[formatter_generic]
+format = %(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s
+datefmt = %H:%M:%S
+
+# End logging configuration
