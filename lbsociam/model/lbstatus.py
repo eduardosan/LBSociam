@@ -94,8 +94,84 @@ class StatusBase(LBSociam):
             datatype='Text',
             indices=['Textual'],
             multivalued=False,
-            required=True
+            required=False
         ))
+
+        tokens = Field(**dict(
+            name='tokens',
+            alias='tokens',
+            description='Tokens extracted from Semantic Role Labeling',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=True,
+            required=False
+        ))
+
+        arg_content_list = Content()
+
+        arg_metadata = GroupMetadata(**dict(
+            name = 'arg_structures',
+            alias='arg_structures',
+            description ='SRL arg structures',
+            multivalued =True
+        ))
+
+        predicate = Field(**dict(
+            name='predicate',
+            alias='predicate',
+            description='Predicate for term in SRL',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=False,
+            required=False
+        ))
+
+        arg_content_list.append(predicate)
+
+        argument_metadata = GroupMetadata(**dict(
+            name = 'argument',
+            alias='argument',
+            description='Argument for term in SRL',
+            multivalued=True
+        ))
+
+        argument_list = Content()
+
+        argument_name = Field(**dict(
+            name='argument_name',
+            alias='argument_name',
+            description='Argument identification',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=False,
+            required=False
+        ))
+
+        argument_list.append(argument_name)
+
+        argument_value = Field(**dict(
+            name='argument_value',
+            alias='argument_value',
+            description='Argument Value for SRL',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=True,
+            required=False
+        ))
+
+        argument_list.append(argument_value)
+
+        argument = Group(
+            metadata=argument_metadata,
+            content=argument_list
+        )
+
+        arg_content_list.append(argument)
+
+        arg_structures = Group(
+            metadata=arg_metadata,
+            content=arg_content_list
+        )
 
 
         base_metadata = BaseMetadata(**dict(
@@ -113,6 +189,8 @@ class StatusBase(LBSociam):
         content_list = Content()
         content_list.append(inclusion_date)
         content_list.append(text)
+        content_list.append(tokens)
+        content_list.append(arg_structures)
         content_list.append(origin)
         content_list.append(source)
 
@@ -143,6 +221,10 @@ class Status(LBSociam):
             base=self.status_base.lbbase,
             response_object=False
         )
+
+        # These attributes have to be empty
+        self.tokens = list()
+        self.arg_structures = dict()
 
     @property
     def inclusion_date(self):
@@ -197,6 +279,51 @@ class Status(LBSociam):
         lbstatus = conv.dict2document(self.status_base.lbbase, self.status_to_dict())
         return lbstatus
 
+    @property
+    def tokens(self):
+        """
+        :return: SRL tokenizer object
+        """
+        return self._tokens
+
+    @tokens.setter
+    def tokens(self, value):
+        """
+        :return:
+        """
+        self._tokens = value
+
+    @property
+    def arg_structures(self):
+        """
+        :return: SRL arg structures
+        """
+        return self._arg_structures
+
+    @arg_structures.setter
+    def arg_structures(self, value):
+        """
+        Store arg structures on text
+        :return:
+        """
+        saida = []
+        for predicate, argument in value:
+            argument_list = list()
+            #print(argument)
+            for argument_name in argument.keys():
+                argument_dict = dict()
+                argument_dict['argument_name'] = argument_name
+                argument_dict['value'] = argument[argument_name]
+                argument_list.append(argument_dict)
+
+            saida.append({
+                'predicate': predicate,
+                'argument': argument_list
+            })
+
+        self._arg_structures = saida
+
+
     def status_to_dict(self):
         """
         Convert status object to Python dict
@@ -231,19 +358,6 @@ class Status(LBSociam):
         document = self.status_to_json()
         return self.documentrest.create(document)
 
-    @property
-    def tokens(self):
-        """
-        :return: SRL tokenizer object
-        """
-        return self._tokens
-
-    @property
-    def arg_structures(self):
-        """
-        :return: SRL arg structures
-        """
-        return self._arg_structures
 
     def srl_tokenize(self):
         """
@@ -251,5 +365,6 @@ class Status(LBSociam):
         """
         tagger = nlpnet.SRLTagger()
         sent = tagger.tag(self.text)
-        self._tokens = sent[0].tokens
-        self._arg_structures = sent[0].arg_structures
+        self.tokens = sent[0].tokens
+        print(sent[0].__dict__)
+        self.arg_structures = sent[0].arg_structures
