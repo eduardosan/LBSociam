@@ -191,13 +191,15 @@ class TwitterCommands(command.Command):
         """
         Apply SRL to tweets already stored on database
         """
+        orderby = OrderBy(asc=['id_doc'])
         search = Search(
             limit=10,
-            offset=offset
+            offset=offset,
+            order_by=orderby
         )
         self.status_base.documentrest.response_object = False
         collection = self.status_base.documentrest.get_collection(search)
-        for i in range(0, 9):
+        for i in range(0, 10):
             try:
                 result = collection.results[i]
             except IndexError:

@@ -314,7 +314,7 @@ class Status(LBSociam):
             for argument_name in argument.keys():
                 argument_dict = dict()
                 argument_dict['argument_name'] = argument_name
-                argument_dict['value'] = argument[argument_name]
+                argument_dict['argument_value'] = argument[argument_name]
                 argument_list.append(argument_dict)
 
             saida.append({
@@ -322,7 +322,7 @@ class Status(LBSociam):
                 'argument': argument_list
             })
 
-        print(saida)
+        #print(saida)
         self._arg_structures = saida
 
 
@@ -372,5 +372,5 @@ class Status(LBSociam):
         tagger = nlpnet.SRLTagger()
         sent = tagger.tag(self.text)
         self.tokens = sent[0].tokens
-        print(sent[0].__dict__)
+        #print(sent[0].__dict__)
         self.arg_structures = sent[0].arg_structures
