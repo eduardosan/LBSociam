@@ -1,6 +1,8 @@
 #!/usr/env python
 # -*- coding: utf-8 -*-
 import lbsociam
+import io
+import json
 import unittest
 import datetime
 from liblightbase import lbrest
@@ -50,7 +52,7 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
             inclusion_date=datetime.datetime.now(),
             text=tw_status_elm[0].text,
             source=tw_status_json,
-            status_base=self.status_base
+            search_term='crime'
         )
 
         retorno = status.create_status()
@@ -71,18 +73,18 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
             origin='twitter',
             inclusion_date=datetime.datetime.now(),
             text=tw_status_elm[0].text,
-            source=tw_status_json,
-            status_base=self.status_base
+            search_term='crime',
+            source=tw_status_json
         )
 
         retorno = status.create_status()
         self.assertEqual(retorno, 1)
 
-        TwitterStatus = status.status_base.lbbase.metaclass()
+        TwitterStatus = self.status_base.lbbase.metaclass()
         #print(type(TwitterStatus))
         status_dict = status.status_to_dict()
         #print(status_dict[0])
-        status_obj = conv.dict2document(status.status_base.lbbase, status_dict)
+        status_obj = conv.dict2document(self.status_base.lbbase, status_dict)
         #self.assertIsInstance(status_obj, TwitterStatus)
         self.assertIsNotNone(status_obj)
 
@@ -115,13 +117,12 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
             origin='twitter',
             inclusion_date=datetime.datetime.now(),
             text=tw_status_elm[0].text,
-            source=tw_status_json,
-            status_base=self.status_base
+            search_term='crime',
+            source=tw_status_json
         )
 
         retorno = status.create_status()
-        self.assertEqual(retorno, 1)
-        self.assertIsNotNone(status.lbstatus)
+        self.assertIsInstance(retorno, int)
 
         # Initialize SRL tokenize
         status.srl_tokenize()
@@ -130,9 +131,9 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         self.assertGreaterEqual(len(status.arg_structures), 0)
 
         # Debug status JSON
-        fd = open('/tmp/status_converted.json', 'w+')
-        fd.write(status.status_to_json())
-        fd.close()
+        with io.open('/tmp/status_converted.json', 'w+', encoding='utf8') as json_file:
+            json_file.write(status.status_to_json())
+            json_file.close()
 
         retorno = self.status_base.remove_base()
         self.assertTrue(retorno)
@@ -150,16 +151,15 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
             origin='twitter',
             inclusion_date=datetime.datetime.now(),
             text=tw_status_elm[0].text,
-            source=tw_status_json,
-            status_base=self.status_base
+            search_term='crime',
+            source=tw_status_json
         )
 
-        retorno = status.create_status(unique=True)
+        retorno = status.create_status()
         self.assertIsInstance(retorno, int)
-        self.assertIsNotNone(status.lbstatus)
 
         # Try to insert again already existent document
-        retorno = status.create_status(unique=True)
+        retorno = status.create_status()
         self.assertIsNone(retorno)
 
         # Try to insert a different document
@@ -170,10 +170,10 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
             origin='twitter',
             inclusion_date=datetime.datetime.now(),
             text=tw_status_elm[0].text,
-            source=tw_status_json,
-            status_base=self.status_base
+            search_term='crime',
+            source=tw_status_json
         )
-        retorno = status.create_status(unique=True)
+        retorno = status.create_status()
         self.assertIsInstance(retorno, int)
 
         retorno = self.status_base.remove_base()

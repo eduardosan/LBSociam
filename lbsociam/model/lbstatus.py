@@ -4,6 +4,8 @@ __author__ = 'eduardo'
 import datetime
 import json
 import nlpnet
+import logging
+from requests.exceptions import HTTPError
 from lbsociam import LBSociam
 from liblightbase import lbrest
 from liblightbase.lbutils import conv
@@ -12,6 +14,11 @@ from liblightbase.lbbase.lbstruct.group import *
 from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
 from liblightbase.lbutils.const import PYSTR
+import hashlib
+from liblightbase.lbsearch.search import Search, OrderBy
+
+log = logging.getLogger()
+
 
 class StatusBase(LBSociam):
     """
@@ -23,34 +30,15 @@ class StatusBase(LBSociam):
         :return:
         """
         LBSociam.__init__(self)
-        self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
-        self.documentrest = lbrest.DocumentREST(rest_url=self.lbgenerator_rest_url, base=self.lbbase, response_object=True)
-
-    def create_base(self):
-        """
-        Create a base to hold twitter information on Lightbase
-        :param status: One twitter status object to be base model
-        :return: LB Base object
-        """
-        lbbase = self.lbbase
-        response = self.baserest.create(lbbase)
-        #print(response.status_code)
-        if response.status_code == 200:
-            return lbbase
-        else:
-            return None
-
-    def remove_base(self):
-        """
-        Remove base from Lightbase
-        :param lbbase: LBBase object instance
-        :return: True or Error if base was not excluded
-        """
-        response = self.baserest.delete(self.lbbase)
-        if response.status_code == 200:
-            return True
-        else:
-            raise IOError('Error excluding base from LB')
+        self.baserest = lbrest.BaseREST(
+            rest_url=self.lbgenerator_rest_url,
+            response_object=True
+        )
+        self.documentrest = lbrest.DocumentREST(
+            rest_url=self.lbgenerator_rest_url,
+            base=self.lbbase,
+            response_object=False
+        )
 
     @property
     def lbbase(self):
@@ -78,14 +66,24 @@ class StatusBase(LBSociam):
             required=True
         ))
 
+        search_term = Field(**dict(
+            name='search_term',
+            alias='search_term',
+            description='Term used on search',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=False,
+            required=True
+        ))
+
         source = Field(**dict(
             name='source',
             alias='source',
-            description = 'Original status source',
-            datatype = 'Json',
-            indices = ['Textual'],
-            multivalued = False,
-            required = True
+            description='Original status source',
+            datatype='Json',
+            indices=['Textual', 'Unico'],
+            multivalued=False,
+            required=True
         ))
 
         text = Field(**dict(
@@ -111,10 +109,10 @@ class StatusBase(LBSociam):
         arg_content_list = Content()
 
         arg_metadata = GroupMetadata(**dict(
-            name = 'arg_structures',
+            name='arg_structures',
             alias='arg_structures',
-            description ='SRL arg structures',
-            multivalued =True
+            description='SRL arg structures',
+            multivalued=True
         ))
 
         predicate = Field(**dict(
@@ -130,7 +128,7 @@ class StatusBase(LBSociam):
         arg_content_list.append(predicate)
 
         argument_metadata = GroupMetadata(**dict(
-            name = 'argument',
+            name='argument',
             alias='argument',
             description='Argument for term in SRL',
             multivalued=True
@@ -174,7 +172,6 @@ class StatusBase(LBSociam):
             content=arg_content_list
         )
 
-
         base_metadata = BaseMetadata(**dict(
             name = 'status',
             description = 'Status from social networks',
@@ -190,6 +187,7 @@ class StatusBase(LBSociam):
         content_list = Content()
         content_list.append(inclusion_date)
         content_list.append(text)
+        content_list.append(search_term)
         content_list.append(tokens)
         content_list.append(arg_structures)
         content_list.append(origin)
@@ -202,30 +200,62 @@ class StatusBase(LBSociam):
 
         return lbbase
 
-class Status(LBSociam):
+    @property
+    def metaclass(self):
+        """
+        Retorna metaclass para essa base
+        """
+        return self.lbbase.metaclass()
+
+    def create_base(self):
+        """
+        Create a base to hold twitter information on Lightbase
+        :param status: One twitter status object to be base model
+        :return: LB Base object
+        """
+        lbbase = self.lbbase
+        response = self.baserest.create(lbbase)
+        #print(response.status_code)
+        if response.status_code == 200:
+            return lbbase
+        else:
+            return None
+
+    def remove_base(self):
+        """
+        Remove base from Lightbase
+        :param lbbase: LBBase object instance
+        :return: True or Error if base was not excluded
+        """
+        response = self.baserest.delete(self.lbbase)
+        if response.status_code == 200:
+            return True
+        else:
+            raise IOError('Error excluding base from LB')
+
+    def update_base(self):
+        """
+        Update base from LB Base
+        """
+        response = self.baserest.update(self.lbbase)
+        if response.status_code == 200:
+            return True
+        else:
+            raise IOError('Error updating LB Base structure')
+
+status_base = StatusBase()
+
+
+class Status(status_base.metaclass):
     """
     Class to hold status elements
     """
-    def __init__(self, inclusion_date, source, origin, status_base, text):
+    def __init__(self, **args):
         """
         Construct for social networks data
         :return:
         """
-        LBSociam.__init__(self)
-        self.inclusion_date = inclusion_date
-        self.source = source
-        self.origin = origin
-        self.text = text
-        self.status_base = status_base
-        self.documentrest = lbrest.DocumentREST(
-            rest_url=self.lbgenerator_rest_url,
-            base=self.status_base.lbbase,
-            response_object=False
-        )
-
-        # These attributes have to be empty
-        self.tokens = list()
-        self.arg_structures = dict()
+        super(Status, self).__init__(**args)
 
     @property
     def inclusion_date(self):
@@ -241,44 +271,7 @@ class Status(LBSociam):
         Inclusion date setter
         """
         assert isinstance(value, datetime.datetime), "This should be datetime"
-        self._inclusion_date = value
-
-    @property
-    def inclusion_date_str(self):
-        """
-        :return: Property in standard format
-        """
-
-    @inclusion_date_str.getter
-    def inclusion_date_str(self):
-        """
-        :return:
-        """
-        return self.inclusion_date.strftime("%d/%m/%Y")
-
-    @property
-    def status_base(self):
-        """
-        Status base
-        """
-        return self._status_base
-
-    @status_base.setter
-    def status_base(self, value):
-        """
-        It has to be an instance of StatusBase object
-        """
-        assert isinstance(value, StatusBase), "It has be an instance of StatusBase"
-        self._status_base = value
-
-    @property
-    def lbstatus(self):
-        """
-        Get LB Status object
-        :return: LB Metaclass for status
-        """
-        lbstatus = conv.dict2document(self.status_base.lbbase, self.status_to_dict())
-        return lbstatus
+        self._inclusion_date = value.strftime("%d/%m/%Y")
 
     @property
     def tokens(self):
@@ -315,6 +308,7 @@ class Status(LBSociam):
                 argument_dict = dict()
                 argument_dict['argument_name'] = argument_name
                 argument_dict['argument_value'] = argument[argument_name]
+                #print(argument_dict)
                 argument_list.append(argument_dict)
 
             saida.append({
@@ -325,45 +319,64 @@ class Status(LBSociam):
         #print(saida)
         self._arg_structures = saida
 
+    @property
+    def source(self):
+        """
+        Source property
+        """
+        return self._source
+
+    @source.setter
+    def source(self, value):
+        self._source = value
+
+    @property
+    def text(self):
+        """
+        Text from Status
+        """
+        return self._text
+
+    @text.setter
+    def text(self, value):
+        """
+        Text UTF8 conversion
+        """
+        self._text = value
 
     def status_to_dict(self):
         """
         Convert status object to Python dict
         :return:
         """
-        saida = {
-            'inclusion_date': self.inclusion_date_str,
-            'text': self.text,
-            'source': self.source,
-            'origin': self.origin,
-            'tokens': self.tokens,
-            'arg_structures': self.arg_structures
-        }
-
-        return saida
+        return conv.document2dict(status_base.lbbase, self)
 
     def status_to_json(self):
         """
         Convert object to json
         :return:
         """
-        saida = self.status_to_dict()
-        saida['inclusion_date'] = self.inclusion_date_str
-        return json.dumps(saida)
+        return conv.document2json(status_base.lbbase, self)
 
     def create_status(self):
         """
         Insert document on base
-        :param document:
-        :return:
+        :param unique: If it is unique, sent this option as true
+        :return: Document creation status
         """
         document = self.status_to_json()
-        return self.documentrest.create(document)
+        try:
+            result = status_base.documentrest.create(document)
+        except HTTPError, err:
+            log.error(err.strerror)
+            return None
 
-    def update(self, id):
+        return result
+
+    def update(self, id_doc):
+        #print(self.arg_structures)
         document = self.status_to_json()
-        return self.documentrest.update(id, document)
-
+        return status_base.documentrest.update(id=id_doc, document=document)
 
     def srl_tokenize(self):
         """

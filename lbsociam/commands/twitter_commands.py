@@ -43,7 +43,6 @@ class TwitterCommands(command.Command):
     #                  dest='goodbye',
     #                  help="Say 'Goodbye' instead")
 
-
     parser.add_option('-t', '--terms',
                       action='store',
                       dest='terms',
@@ -62,6 +61,13 @@ class TwitterCommands(command.Command):
                       dest='count',
                       help='Number of results to be returned',
                       default='15'
+        )
+
+    parser.add_option('-u', '--unique',
+                      action='store',
+                      dest='unique',
+                      help='Should we check for unique hashes',
+                      default=False
         )
 
     def __init__(self, name):
@@ -91,6 +97,9 @@ class TwitterCommands(command.Command):
         if cmd == 'remove_base':
             self.remove_base()
             return
+        if cmd == 'update_base':
+            self.update_base()
+            return
         if cmd == 'search_twitter':
             if self.options.terms:
                 self.search_twitter()
@@ -106,6 +115,9 @@ class TwitterCommands(command.Command):
         if cmd == 'srl_twitter':
             self.srl_twitter()
             return
+        if cmd == 'update_hash':
+            self.update_hash()
+            return
         else:
             log.error('Command "%s" not recognized' % (cmd,))
 
@@ -116,6 +128,18 @@ class TwitterCommands(command.Command):
         status_lbbase = self.status_base.create_base()
         if isinstance(status_lbbase, Base):
             log.info("Status base created")
+        else:
+            raise StandardError
+
+        return
+
+    def update_base(self):
+        """
+        Create the base for twitter status
+        """
+        result = self.status_base.update_base()
+        if result:
+            log.info("Status base updated")
         else:
             raise StandardError
 
@@ -170,13 +194,13 @@ class TwitterCommands(command.Command):
                 status = self.lbt.search(count=self.options.count)
                 saida = saida + status
 
-
         # Store every twitter on LB database
         for elm in saida:
             status_json = self.lbt.status_to_json([elm])
             status = lbstatus.Status(
                 origin='twitter',
                 inclusion_date=datetime.datetime.now(),
+                search_term=self.options.terms,
                 text=elm.text,
                 source=status_json,
                 status_base=self.status_base
@@ -208,6 +232,7 @@ class TwitterCommands(command.Command):
             status = lbstatus.Status(
                 origin=result.origin,
                 inclusion_date=datetime.datetime.strptime(result.inclusion_date, "%d/%m/%Y"),
+                search_term=result.search_term,
                 text=result.text,
                 source=result.source,
                 status_base=self.status_base
@@ -216,7 +241,7 @@ class TwitterCommands(command.Command):
             #print(status.tokens)
             #print(status.arg_structures)
             try:
-                status.update(id=result._metadata.id_doc)
+                status.update(id_doc=result._metadata.id_doc)
             except:
                 exctype, value = sys.exc_info()[:2]
                 log.error("Error updating document id = %d\n%s" % (result._metadata.id_doc, value))

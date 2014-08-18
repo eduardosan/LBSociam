@@ -53,6 +53,7 @@ coverage.xml
 docs/_build/
 
 development.ini
+test.ini
 
 # Pycharm config
 .idea/
