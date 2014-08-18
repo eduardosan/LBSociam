@@ -121,7 +121,6 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
 
         retorno = status.create_status()
         self.assertEqual(retorno, 1)
-
         self.assertIsNotNone(status.lbstatus)
 
         # Initialize SRL tokenize
@@ -134,6 +133,48 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         fd = open('/tmp/status_converted.json', 'w+')
         fd.write(status.status_to_json())
         fd.close()
+
+        retorno = self.status_base.remove_base()
+        self.assertTrue(retorno)
+
+    def test_repeated_document(self):
+        """
+        Test repeated document insertion
+        """
+        tw_status_elm = [self.tw_status[1]]
+        tw_status_json = self.lbt.status_to_json(tw_status_elm)
+
+        lbbase = self.status_base.create_base()
+
+        status = lbstatus.Status(
+            origin='twitter',
+            inclusion_date=datetime.datetime.now(),
+            text=tw_status_elm[0].text,
+            source=tw_status_json,
+            status_base=self.status_base
+        )
+
+        retorno = status.create_status(unique=True)
+        self.assertIsInstance(retorno, int)
+        self.assertIsNotNone(status.lbstatus)
+
+        # Try to insert again already existent document
+        retorno = status.create_status(unique=True)
+        self.assertIsNone(retorno)
+
+        # Try to insert a different document
+        tw_status_elm = [self.tw_status[2]]
+        tw_status_json = self.lbt.status_to_json(tw_status_elm)
+
+        status = lbstatus.Status(
+            origin='twitter',
+            inclusion_date=datetime.datetime.now(),
+            text=tw_status_elm[0].text,
+            source=tw_status_json,
+            status_base=self.status_base
+        )
+        retorno = status.create_status(unique=True)
+        self.assertIsInstance(retorno, int)
 
         retorno = self.status_base.remove_base()
         self.assertTrue(retorno)
