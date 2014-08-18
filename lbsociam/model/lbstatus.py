@@ -12,6 +12,8 @@ from liblightbase.lbbase.lbstruct.group import *
 from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
 from liblightbase.lbutils.const import PYSTR
+import hashlib
+from liblightbase.lbsearch.search import Search, OrderBy
 
 class StatusBase(LBSociam):
     """
@@ -25,32 +27,6 @@ class StatusBase(LBSociam):
         LBSociam.__init__(self)
         self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
         self.documentrest = lbrest.DocumentREST(rest_url=self.lbgenerator_rest_url, base=self.lbbase, response_object=True)
-
-    def create_base(self):
-        """
-        Create a base to hold twitter information on Lightbase
-        :param status: One twitter status object to be base model
-        :return: LB Base object
-        """
-        lbbase = self.lbbase
-        response = self.baserest.create(lbbase)
-        #print(response.status_code)
-        if response.status_code == 200:
-            return lbbase
-        else:
-            return None
-
-    def remove_base(self):
-        """
-        Remove base from Lightbase
-        :param lbbase: LBBase object instance
-        :return: True or Error if base was not excluded
-        """
-        response = self.baserest.delete(self.lbbase)
-        if response.status_code == 200:
-            return True
-        else:
-            raise IOError('Error excluding base from LB')
 
     @property
     def lbbase(self):
@@ -78,14 +54,34 @@ class StatusBase(LBSociam):
             required=True
         ))
 
+        search_term = Field(**dict(
+            name='search_term',
+            alias='search_term',
+            description='Term used on search',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=False,
+            required=True
+        ))
+
         source = Field(**dict(
             name='source',
             alias='source',
-            description = 'Original status source',
-            datatype = 'Json',
-            indices = ['Textual'],
-            multivalued = False,
-            required = True
+            description='Original status source',
+            datatype='Json',
+            indices=['Textual'],
+            multivalued=False,
+            required=True
+        ))
+
+        source_hash = Field(**dict(
+            name='source_hash',
+            alias='source_hash',
+            description='Original status source hash',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=False,
+            required=False
         ))
 
         text = Field(**dict(
@@ -130,7 +126,7 @@ class StatusBase(LBSociam):
         arg_content_list.append(predicate)
 
         argument_metadata = GroupMetadata(**dict(
-            name = 'argument',
+            name='argument',
             alias='argument',
             description='Argument for term in SRL',
             multivalued=True
@@ -190,10 +186,12 @@ class StatusBase(LBSociam):
         content_list = Content()
         content_list.append(inclusion_date)
         content_list.append(text)
+        content_list.append(search_term)
         content_list.append(tokens)
         content_list.append(arg_structures)
         content_list.append(origin)
         content_list.append(source)
+        content_list.append(source_hash)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -202,11 +200,48 @@ class StatusBase(LBSociam):
 
         return lbbase
 
+    def create_base(self):
+        """
+        Create a base to hold twitter information on Lightbase
+        :param status: One twitter status object to be base model
+        :return: LB Base object
+        """
+        lbbase = self.lbbase
+        response = self.baserest.create(lbbase)
+        #print(response.status_code)
+        if response.status_code == 200:
+            return lbbase
+        else:
+            return None
+
+    def remove_base(self):
+        """
+        Remove base from Lightbase
+        :param lbbase: LBBase object instance
+        :return: True or Error if base was not excluded
+        """
+        response = self.baserest.delete(self.lbbase)
+        if response.status_code == 200:
+            return True
+        else:
+            raise IOError('Error excluding base from LB')
+
+    def update_base(self):
+        """
+        Update base from LB Base
+        """
+        response = self.baserest.update(self.lbbase)
+        if response.status_code == 200:
+            return True
+        else:
+            raise IOError('Error updating LB Base structure')
+
+
 class Status(LBSociam):
     """
     Class to hold status elements
     """
-    def __init__(self, inclusion_date, source, origin, status_base, text):
+    def __init__(self, inclusion_date, source, search_term, origin, status_base, text):
         """
         Construct for social networks data
         :return:
@@ -214,6 +249,7 @@ class Status(LBSociam):
         LBSociam.__init__(self)
         self.inclusion_date = inclusion_date
         self.source = source
+        self.search_term = search_term
         self.origin = origin
         self.text = text
         self.status_base = status_base
@@ -325,6 +361,26 @@ class Status(LBSociam):
         #print(saida)
         self._arg_structures = saida
 
+    @property
+    def source(self):
+        """
+        Source property
+        """
+        return self._source
+
+    @source.setter
+    def source(self, value):
+        self._source = value
+        source_hash = hashlib.md5(value).hexdigest()
+        self._source_hash = source_hash
+
+    @property
+    def source_hash(self):
+        """
+        MD5 hash to make sure tweet is unique
+        :return:
+        """
+        return self._source_hash
 
     def status_to_dict(self):
         """
@@ -333,8 +389,10 @@ class Status(LBSociam):
         """
         saida = {
             'inclusion_date': self.inclusion_date_str,
+            'search_term': self.search_term,
             'text': self.text,
             'source': self.source,
+            'source_hash': self.source_hash,
             'origin': self.origin,
             'tokens': self.tokens,
             'arg_structures': self.arg_structures
@@ -351,19 +409,26 @@ class Status(LBSociam):
         saida['inclusion_date'] = self.inclusion_date_str
         return json.dumps(saida)
 
-    def create_status(self):
+    def create_status(self, unique=False):
         """
         Insert document on base
-        :param document:
-        :return:
+        :param unique: If it is unique, sent this option as true
+        :return: Document creation status
         """
-        document = self.status_to_json()
-        return self.documentrest.create(document)
+        if unique:
+            result = self.search_hash()
+            if result is not None:
+                return None
+            else:
+                document = self.status_to_json()
+                return self.documentrest.create(document)
+        else:
+            document = self.status_to_json()
+            return self.documentrest.create(document)
 
     def update(self, id):
         document = self.status_to_json()
         return self.documentrest.update(id, document)
-
 
     def srl_tokenize(self):
         """
@@ -374,3 +439,39 @@ class Status(LBSociam):
         self.tokens = sent[0].tokens
         #print(sent[0].__dict__)
         self.arg_structures = sent[0].arg_structures
+
+    def update_source_hash(self):
+        """
+        Update source hash in fields
+        """
+        self._source_hash = hashlib.md5(self.source).hexdigest()
+
+    def search_hash(self, offset=0):
+        """
+        Search existent hash
+        :return id_doc: ID of the existent doc
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        search = Search(
+            limit=10,
+            offset=offset,
+            order_by=orderby
+        )
+        self.status_base.documentrest.response_object = False
+        collection = self.status_base.documentrest.get_collection(search)
+        for i in range(0, 10):
+            try:
+                result = collection.results[i]
+            except IndexError:
+                break
+            #print(result.source_hash)
+            if result.source_hash == self.source_hash:
+                print(self.source_hash)
+                # Document exists. Return id_doc for found document
+                return result._metadata.id_doc
+
+        if collection.result_count > (offset+10):
+            # Call the same function again increasing offset
+            self.search_hash(offset=(offset+10))
+
+        return None
