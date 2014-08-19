@@ -205,7 +205,7 @@ class TwitterCommands(command.Command):
                 source=status_json,
                 status_base=self.status_base
             )
-            retorno = status.create_status()
+            retorno = status.create_status(unique=True)
             if retorno is None:
                 log.error("Error inserting status %s on Base" % elm.text)
 
@@ -242,6 +242,44 @@ class TwitterCommands(command.Command):
             #print(status.arg_structures)
             try:
                 status.update(id_doc=result._metadata.id_doc)
+            except:
+                exctype, value = sys.exc_info()[:2]
+                log.error("Error updating document id = %d\n%s" % (result._metadata.id_doc, value))
+
+        if collection.result_count > (offset+10):
+            # Call the same function again increasing offset
+            self.srl_twitter(offset=(offset+10))
+
+        return
+
+    def update_hash(self, offset=0):
+        """
+        Update source hash
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        search = Search(
+            limit=10,
+            offset=offset,
+            order_by=orderby
+        )
+        self.status_base.documentrest.response_object = False
+        collection = self.status_base.documentrest.get_collection(search)
+        for i in range(0, 10):
+            try:
+                result = collection.results[i]
+            except IndexError:
+                break
+            # Put status from base in LB Status Object
+            status = lbstatus.Status(
+                origin=result.origin,
+                inclusion_date=datetime.datetime.strptime(result.inclusion_date, "%d/%m/%Y"),
+                text=result.text,
+                source=result.source,
+                status_base=self.status_base
+            )
+            #status.update_source_hash()
+            try:
+                status.update(id=result._metadata.id_doc)
             except:
                 exctype, value = sys.exc_info()[:2]
                 log.error("Error updating document id = %d\n%s" % (result._metadata.id_doc, value))
