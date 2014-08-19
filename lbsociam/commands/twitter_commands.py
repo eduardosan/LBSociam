@@ -205,7 +205,7 @@ class TwitterCommands(command.Command):
                 source=status_json,
                 status_base=self.status_base
             )
-            retorno = status.create_status()
+            retorno = status.create_status(unique=True)
             if retorno is None:
                 log.error("Error inserting status %s on Base" % elm.text)
 
