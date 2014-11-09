@@ -270,8 +270,8 @@ class Status(status_base.metaclass()):
         Inclusion date setter
         """
         assert isinstance(value, datetime.datetime), "This should be datetime"
-        super(Status, self.__class__).inclusion_date.fset(self, value.strftime("%d/%m/%Y"))
         self._inclusion_date = value.strftime("%d/%m/%Y")
+        super(Status, self).__setattr__('__value__', self._inclusion_date)
 
     @property
     def tokens(self):
@@ -285,8 +285,8 @@ class Status(status_base.metaclass()):
         """
         :return:
         """
-        super(Status, self.__class__).tokens.fset(self, value)
         self._tokens = value
+        super(Status, self).__setattr__('__value__', self._tokens)
 
     @property
     def arg_structures(self):
@@ -301,8 +301,8 @@ class Status(status_base.metaclass()):
         Store arg structures on text
         :return:
         """
-        super(Status, self.__class__).arg_structures.fset(self, value)
         self._arg_structures = value
+        super(Status, self).__setattr__('__value__', self._arg_structures)
 
     @property
     def source(self):
@@ -313,8 +313,8 @@ class Status(status_base.metaclass()):
 
     @source.setter
     def source(self, value):
-        super(Status, self.__class__).source.fset(self, value)
         self._source = value
+        super(Status, self).__setattr__('__value__', self._source)
 
     @property
     def text(self):
@@ -328,8 +328,8 @@ class Status(status_base.metaclass()):
         """
         Text UTF8 conversion
         """
-        super(Status, self.__class__).text.fset(self, value)
         self._text = value
+        super(Status, self).__setattr__('__value__', self._text)
 
     def status_to_dict(self):
         """
@@ -383,6 +383,7 @@ class Status(status_base.metaclass()):
                 argument_list = list()
                 #print(argument)
                 for argument_name in argument.keys():
+                    print(argument_list)
                     argument_obj = Argument(
                         argument_name=argument_name,
                         argument_value=argument[argument_name]
@@ -390,11 +391,12 @@ class Status(status_base.metaclass()):
                     argument_list.append(argument_obj)
 
                 print(argument_list)
-                arg_structures.append(ArgStructures(
+                arg_stuctures_obj = ArgStructures(
                     predicate=predicate,
                     argument=argument_list
-                ))
+                )
+                arg_structures.append(arg_stuctures_obj)
 
-        print(arg_structures)
+        #print(arg_structures)
         self.tokens = tokens
         self.arg_structures = arg_structures
