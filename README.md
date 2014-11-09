@@ -105,3 +105,8 @@ cd /srv/lbsociam-py2/src/LBSociam
 /srv/lbsociam-py2/bin/pip install oauth2
 /srv/lbsociam-py2/bin/python get_access_token.py
 </pre>
+
+Utilização
+===========================
+
+* Importa dados do twitter

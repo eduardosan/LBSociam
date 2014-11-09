@@ -14,6 +14,7 @@ from lbsociam.model import lbstatus
 from . import test_twitter_import
 import nlpnet
 
+
 class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
     """
     Test LB integration
@@ -35,17 +36,18 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         fd = open('/tmp/status_base.json', 'w+')
         fd.write(self.status_base.lbbase.json)
         fd.close()
+
+        # Cria base
+        self.lbbase = self.status_base.create_base()
+
         pass
 
     def test_status_insert(self):
         """
         Insert twitter status on Base
         """
-
         tw_status_elm = [self.tw_status[0]]
         tw_status_json = self.lbt.status_to_json(tw_status_elm)
-
-        lbbase = self.status_base.create_base()
 
         status = lbstatus.Status(
             origin='twitter',
@@ -57,8 +59,6 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
 
         retorno = status.create_status()
         self.assertEqual(retorno, 1)
-        retorno = self.status_base.remove_base()
-        self.assertTrue(retorno)
 
     def test_status_to_document(self):
         """
@@ -66,8 +66,6 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         """
         tw_status_elm = [self.tw_status[0]]
         tw_status_json = self.lbt.status_to_json(tw_status_elm)
-
-        lbbase = self.status_base.create_base()
 
         status = lbstatus.Status(
             origin='twitter',
@@ -88,9 +86,6 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         #self.assertIsInstance(status_obj, TwitterStatus)
         self.assertIsNotNone(status_obj)
 
-        retorno = self.status_base.remove_base()
-        self.assertTrue(retorno)
-
     def test_status_tokenizer(self):
         """
         Test Tokenizer tweet
@@ -110,8 +105,6 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         """
         tw_status_elm = [self.tw_status[1]]
         tw_status_json = self.lbt.status_to_json(tw_status_elm)
-
-        lbbase = self.status_base.create_base()
 
         status = lbstatus.Status(
             origin='twitter',
@@ -135,17 +128,12 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
             json_file.write(status.status_to_json())
             json_file.close()
 
-        retorno = self.status_base.remove_base()
-        self.assertTrue(retorno)
-
     def test_repeated_document(self):
         """
         Test repeated document insertion
         """
         tw_status_elm = [self.tw_status[1]]
         tw_status_json = self.lbt.status_to_json(tw_status_elm)
-
-        lbbase = self.status_base.create_base()
 
         status = lbstatus.Status(
             origin='twitter',
@@ -176,14 +164,12 @@ class TwitterBaseTestCase(test_twitter_import.TwitterImportTestCase):
         retorno = status.create_status()
         self.assertIsInstance(retorno, int)
 
-        retorno = self.status_base.remove_base()
-        self.assertTrue(retorno)
-
     def tearDown(self):
         """
         Clear test data
         """
-        #self.status_base.remove_base()
+        retorno = self.status_base.remove_base()
+        self.assertTrue(retorno)
 
         test_twitter_import.TwitterImportTestCase.tearDown(self)
         pass

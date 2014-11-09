@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 __author__ = 'eduardo'
 import datetime
-import json
 import nlpnet
 import logging
 from requests.exceptions import HTTPError
@@ -13,9 +12,6 @@ from liblightbase.lbbase.struct import Base, BaseMetadata
 from liblightbase.lbbase.lbstruct.group import *
 from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
-from liblightbase.lbutils.const import PYSTR
-import hashlib
-from liblightbase.lbsearch.search import Search, OrderBy
 
 log = logging.getLogger()
 
@@ -173,8 +169,8 @@ class StatusBase(LBSociam):
         )
 
         base_metadata = BaseMetadata(**dict(
-            name = 'status',
-            description = 'Status from social networks',
+            name='status',
+            description='Status from social networks',
             password='123456',
             idx_exp=False,
             idx_exp_url='index_url',
@@ -200,12 +196,11 @@ class StatusBase(LBSociam):
 
         return lbbase
 
-    @property
-    def metaclass(self):
+    def metaclass(self, *args, **kwargs):
         """
         Retorna metaclass para essa base
         """
-        return self.lbbase.metaclass()
+        return self.lbbase.metaclass(*args, **kwargs)
 
     def create_base(self):
         """
@@ -246,7 +241,7 @@ class StatusBase(LBSociam):
 status_base = StatusBase()
 
 
-class Status(status_base.metaclass):
+class Status(status_base.metaclass()):
     """
     Class to hold status elements
     """
@@ -256,6 +251,10 @@ class Status(status_base.metaclass):
         :return:
         """
         super(Status, self).__init__(**args)
+
+        # These have to be null
+        self.tokens = list()
+        self.arg_structures = list()
 
     @property
     def inclusion_date(self):
@@ -271,6 +270,7 @@ class Status(status_base.metaclass):
         Inclusion date setter
         """
         assert isinstance(value, datetime.datetime), "This should be datetime"
+        super(Status, self.__class__).inclusion_date.fset(self, value.strftime("%d/%m/%Y"))
         self._inclusion_date = value.strftime("%d/%m/%Y")
 
     @property
@@ -285,6 +285,7 @@ class Status(status_base.metaclass):
         """
         :return:
         """
+        super(Status, self.__class__).tokens.fset(self, value)
         self._tokens = value
 
     @property
@@ -300,24 +301,8 @@ class Status(status_base.metaclass):
         Store arg structures on text
         :return:
         """
-        saida = []
-        for predicate, argument in value:
-            argument_list = list()
-            #print(argument)
-            for argument_name in argument.keys():
-                argument_dict = dict()
-                argument_dict['argument_name'] = argument_name
-                argument_dict['argument_value'] = argument[argument_name]
-                #print(argument_dict)
-                argument_list.append(argument_dict)
-
-            saida.append({
-                'predicate': predicate,
-                'argument': argument_list
-            })
-
-        #print(saida)
-        self._arg_structures = saida
+        super(Status, self.__class__).arg_structures.fset(self, value)
+        self._arg_structures = value
 
     @property
     def source(self):
@@ -328,6 +313,7 @@ class Status(status_base.metaclass):
 
     @source.setter
     def source(self, value):
+        super(Status, self.__class__).source.fset(self, value)
         self._source = value
 
     @property
@@ -342,6 +328,7 @@ class Status(status_base.metaclass):
         """
         Text UTF8 conversion
         """
+        super(Status, self.__class__).text.fset(self, value)
         self._text = value
 
     def status_to_dict(self):
@@ -376,6 +363,7 @@ class Status(status_base.metaclass):
     def update(self, id_doc):
         #print(self.arg_structures)
         document = self.status_to_json()
+        #print(document)
         return status_base.documentrest.update(id=id_doc, document=document)
 
     def srl_tokenize(self):
@@ -384,6 +372,29 @@ class Status(status_base.metaclass):
         """
         tagger = nlpnet.SRLTagger()
         sent = tagger.tag(self.text)
-        self.tokens = sent[0].tokens
-        #print(sent[0].__dict__)
-        self.arg_structures = sent[0].arg_structures
+
+        arg_structures = []
+        tokens = []
+        Argument = status_base.metaclass('argument')
+        ArgStructures = status_base.metaclass('arg_structures')
+        for elm in sent:
+            tokens = tokens + elm.tokens
+            for predicate, argument in elm.arg_structures:
+                argument_list = list()
+                #print(argument)
+                for argument_name in argument.keys():
+                    argument_obj = Argument(
+                        argument_name=argument_name,
+                        argument_value=argument[argument_name]
+                    )
+                    argument_list.append(argument_obj)
+
+                print(argument_list)
+                arg_structures.append(ArgStructures(
+                    predicate=predicate,
+                    argument=argument_list
+                ))
+
+        print(arg_structures)
+        self.tokens = tokens
+        self.arg_structures = arg_structures

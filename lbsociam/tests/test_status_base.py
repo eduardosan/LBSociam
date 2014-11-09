@@ -9,6 +9,7 @@ from lbsociam.model import lbstatus
 from liblightbase.lbutils import conv
 from liblightbase.lbbase.struct import Base
 
+
 class StatusBaseTestCase(unittest.TestCase):
     """
     Test Status base creation
@@ -37,7 +38,7 @@ class StatusBaseTestCase(unittest.TestCase):
         """
         status_base = lbstatus.StatusBase()
 
-        lbbase = status_base.lbbase()
+        lbbase = status_base.lbbase
         fd = open('/tmp/status_base.json', 'w+')
         fd.write(lbbase.json)
         fd.close()

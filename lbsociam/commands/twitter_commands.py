@@ -38,10 +38,6 @@ class TwitterCommands(command.Command):
     group_name = "LBSociam Commands"
 
     parser = command.Command.standard_parser(verbose=True)
-    #parser.add_option('--goodbye',
-    #                  action='store_true',
-    #                  dest='goodbye',
-    #                  help="Say 'Goodbye' instead")
 
     parser.add_option('-t', '--terms',
                       action='store',
@@ -56,11 +52,11 @@ class TwitterCommands(command.Command):
                       default=tempfile.gettempdir() + '/status.json'
         )
 
-    parser.add_option('-c', '--count',
+    parser.add_option('-n', '--number',
                       action='store',
-                      dest='count',
+                      dest='number',
                       help='Number of results to be returned',
-                      default='15'
+                      default=15
         )
 
     parser.add_option('-u', '--unique',
@@ -74,7 +70,7 @@ class TwitterCommands(command.Command):
         """
         Constructor method
         """
-        super(TwitterCommands,self).__init__(name)
+        super(TwitterCommands, self).__init__(name)
 
         #self.lbs = lbsociam.LBSociam()
         #self.baserest = lbrest.BaseREST(rest_url=self.lbs.lbgenerator_rest_url, response_object=True)
@@ -114,9 +110,6 @@ class TwitterCommands(command.Command):
             return
         if cmd == 'srl_twitter':
             self.srl_twitter()
-            return
-        if cmd == 'update_hash':
-            self.update_hash()
             return
         else:
             log.error('Command "%s" not recognized' % (cmd,))
@@ -164,12 +157,12 @@ class TwitterCommands(command.Command):
         saida = list()
         if type(self.options.terms) != list:
             self.lbt.term = self.options.terms
-            status = self.lbt.search(count=self.options.count)
+            status = self.lbt.search(count=self.options.number)
             saida = status
         else:
             for elm in self.options.terms:
                 self.lbt.term = elm
-                status = self.lbt.search(count=self.options.count)
+                status = self.lbt.search(count=self.options.number)
                 saida = saida + status
 
         fd = open(self.options.output, 'w+')
@@ -186,12 +179,12 @@ class TwitterCommands(command.Command):
         saida = list()
         if type(self.options.terms) != list:
             self.lbt.term = self.options.terms
-            status = self.lbt.search(count=self.options.count)
+            status = self.lbt.search(count=self.options.number)
             saida = status
         else:
             for elm in self.options.terms:
                 self.lbt.term = elm
-                status = self.lbt.search(count=self.options.count)
+                status = self.lbt.search(count=self.options.number)
                 saida = saida + status
 
         # Store every twitter on LB database
@@ -205,7 +198,7 @@ class TwitterCommands(command.Command):
                 source=status_json,
                 status_base=self.status_base
             )
-            retorno = status.create_status(unique=True)
+            retorno = status.create_status()
             if retorno is None:
                 log.error("Error inserting status %s on Base" % elm.text)
 
