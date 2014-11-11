@@ -239,9 +239,10 @@ class StatusBase(LBSociam):
             raise IOError('Error updating LB Base structure')
 
 status_base = StatusBase()
+StatusClass = status_base.metaclass()
 
 
-class Status(status_base.metaclass()):
+class Status(StatusClass):
     """
     Class to hold status elements
     """
@@ -262,7 +263,7 @@ class Status(status_base.metaclass()):
         Inclusion date
         :return:
         """
-        return self._inclusion_date
+        return StatusClass.inclusion_date.__get__(self)
 
     @inclusion_date.setter
     def inclusion_date(self, value):
@@ -270,30 +271,28 @@ class Status(status_base.metaclass()):
         Inclusion date setter
         """
         assert isinstance(value, datetime.datetime), "This should be datetime"
-        self._inclusion_date = value.strftime("%d/%m/%Y")
-        super(Status, self).__setattr__('__value__', self._inclusion_date)
+        StatusClass.inclusion_date.__set__(self, value.strftime("%d/%m/%Y"))
 
     @property
     def tokens(self):
         """
         :return: SRL tokenizer object
         """
-        return self._tokens
+        return StatusClass.tokens.__get__(self)
 
     @tokens.setter
     def tokens(self, value):
         """
         :return:
         """
-        self._tokens = value
-        super(Status, self).__setattr__('__value__', self._tokens)
+        StatusClass.tokens.__set__(self, value)
 
     @property
     def arg_structures(self):
         """
         :return: SRL arg structures
         """
-        return self._arg_structures
+        return StatusClass.arg_structures.__get__(self)
 
     @arg_structures.setter
     def arg_structures(self, value):
@@ -301,35 +300,32 @@ class Status(status_base.metaclass()):
         Store arg structures on text
         :return:
         """
-        self._arg_structures = value
-        super(Status, self).__setattr__('__value__', self._arg_structures)
+        StatusClass.arg_structures.__set__(self, value)
 
     @property
     def source(self):
         """
         Source property
         """
-        return self._source
+        return StatusClass.source.__get__(self)
 
     @source.setter
     def source(self, value):
-        self._source = value
-        super(Status, self).__setattr__('__value__', self._source)
+        StatusClass.source.__set__(self, value)
 
     @property
     def text(self):
         """
         Text from Status
         """
-        return self._text
+        return StatusClass.text.__get__(self)
 
     @text.setter
     def text(self, value):
         """
         Text UTF8 conversion
         """
-        self._text = value
-        super(Status, self).__setattr__('__value__', self._text)
+        StatusClass.text.__set__(self, value)
 
     def status_to_dict(self):
         """
@@ -375,15 +371,15 @@ class Status(status_base.metaclass()):
 
         arg_structures = []
         tokens = []
-        Argument = status_base.metaclass('argument')
         ArgStructures = status_base.metaclass('arg_structures')
         for elm in sent:
             tokens = tokens + elm.tokens
             for predicate, argument in elm.arg_structures:
                 argument_list = list()
-                #print(argument)
+                print(argument)
                 for argument_name in argument.keys():
                     print(argument_list)
+                    Argument = status_base.metaclass('argument')
                     argument_obj = Argument(
                         argument_name=argument_name,
                         argument_value=argument[argument_name]
