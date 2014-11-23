@@ -6,6 +6,7 @@ import tempfile
 import datetime
 import sys
 import lbsociam
+import json
 from paste.script import command
 from liblightbase import lbrest
 from lbsociam.model import lbtwitter
@@ -13,8 +14,10 @@ from lbsociam.model import lbstatus
 from liblightbase.lbbase.struct import Base
 from liblightbase.lbsearch.search import *
 from liblightbase.lbutils import conv
+from ..lib import srl
 
 log = logging.getLogger()
+
 
 class TwitterCommands(command.Command):
     """
@@ -221,20 +224,34 @@ class TwitterCommands(command.Command):
                 result = collection.results[i]
             except IndexError:
                 break
+            # JSON
+            status_dict = conv.document2dict(self.status_base.lbbase, result)
+            # SRL tokenize
+            tokenized = srl.srl_tokenize(result.text)
+            if tokenized.get('arg_structures') is not None:
+                status_dict['arg_structures'] = tokenized.get('arg_structures')
+            if tokenized.get('tokens') is not None:
+                status_dict['tokens'] = tokenized.get('tokens')
+
+            # FIXME: Isso aqui precisa ser resolvido na liblightbase
             # Put status from base in LB Status Object
-            status = lbstatus.Status(
-                origin=result.origin,
-                inclusion_date=datetime.datetime.strptime(result.inclusion_date, "%d/%m/%Y"),
-                search_term=result.search_term,
-                text=result.text,
-                source=result.source,
-                status_base=self.status_base
-            )
-            status.srl_tokenize()
+            #status = lbstatus.Status(
+            #    origin=result.origin,
+            #    inclusion_date=datetime.datetime.strptime(result.inclusion_date, "%d/%m/%Y"),
+            #    search_term=result.search_term,
+            #    text=result.text,
+            #    source=result.source,
+            #    status_base=self.status_base,
+            #    tokens=tokenized.get('tokens'),
+            #    arg_structures=tokenized.get('arg_structures')
+            #)
+            #status.srl_tokenize()
             #print(status.tokens)
             #print(status.arg_structures)
             try:
-                status.update(id_doc=result._metadata.id_doc)
+                self.status_base.documentrest.update(result._metadata.id_doc, json.dumps(status_dict))
+                # FIXME: Esse método só vai funcionar quando a liblightbase estiver ok
+                #status.update(id_doc=result._metadata.id_doc)
             except:
                 exctype, value = sys.exc_info()[:2]
                 log.error("Error updating document id = %d\n%s" % (result._metadata.id_doc, value))

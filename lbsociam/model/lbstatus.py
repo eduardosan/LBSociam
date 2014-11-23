@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 __author__ = 'eduardo'
 import datetime
-import nlpnet
 import logging
 from requests.exceptions import HTTPError
 from lbsociam import LBSociam
@@ -196,11 +195,26 @@ class StatusBase(LBSociam):
 
         return lbbase
 
-    def metaclass(self, *args, **kwargs):
+    @property
+    def metaclass(self):
         """
         Retorna metaclass para essa base
         """
-        return self.lbbase.metaclass(*args, **kwargs)
+        return self.lbbase.metaclass()
+
+    @property
+    def arg_structures(self):
+        """
+        Metaclass para o grupo
+        """
+        return self.lbbase.metaclass('arg_structures')
+
+    @property
+    def argument(self):
+        """
+        Metaclass para o grupo
+        """
+        return self.lbbase.metaclass('argument')
 
     def create_base(self):
         """
@@ -239,7 +253,9 @@ class StatusBase(LBSociam):
             raise IOError('Error updating LB Base structure')
 
 status_base = StatusBase()
-StatusClass = status_base.metaclass()
+StatusClass = status_base.metaclass
+ArgStructures = status_base.arg_structures
+Argument = status_base.argument
 
 
 class Status(StatusClass):
@@ -254,8 +270,9 @@ class Status(StatusClass):
         super(Status, self).__init__(**args)
 
         # These have to be null
-        self.tokens = list()
-        self.arg_structures = list()
+        #self.tokens = list()
+        #self.arg_structures = list()
+        self.status_base = status_base
 
     @property
     def inclusion_date(self):
@@ -270,8 +287,11 @@ class Status(StatusClass):
         """
         Inclusion date setter
         """
-        assert isinstance(value, datetime.datetime), "This should be datetime"
-        StatusClass.inclusion_date.__set__(self, value.strftime("%d/%m/%Y"))
+        if isinstance(value, datetime.datetime):
+            value = value.strftime("%d/%m/%Y")
+
+        StatusClass.inclusion_date.__set__(self, value)
+
 
     @property
     def tokens(self):
@@ -286,21 +306,6 @@ class Status(StatusClass):
         :return:
         """
         StatusClass.tokens.__set__(self, value)
-
-    @property
-    def arg_structures(self):
-        """
-        :return: SRL arg structures
-        """
-        return StatusClass.arg_structures.__get__(self)
-
-    @arg_structures.setter
-    def arg_structures(self, value):
-        """
-        Store arg structures on text
-        :return:
-        """
-        StatusClass.arg_structures.__set__(self, value)
 
     @property
     def source(self):
@@ -361,38 +366,3 @@ class Status(StatusClass):
         document = self.status_to_json()
         #print(document)
         return status_base.documentrest.update(id=id_doc, document=document)
-
-    def srl_tokenize(self):
-        """
-        SRL tokenized attributes initialization
-        """
-        tagger = nlpnet.SRLTagger()
-        sent = tagger.tag(self.text)
-
-        arg_structures = []
-        tokens = []
-        ArgStructures = status_base.metaclass('arg_structures')
-        for elm in sent:
-            tokens = tokens + elm.tokens
-            for predicate, argument in elm.arg_structures:
-                argument_list = list()
-                print(argument)
-                for argument_name in argument.keys():
-                    print(argument_list)
-                    Argument = status_base.metaclass('argument')
-                    argument_obj = Argument(
-                        argument_name=argument_name,
-                        argument_value=argument[argument_name]
-                    )
-                    argument_list.append(argument_obj)
-
-                print(argument_list)
-                arg_stuctures_obj = ArgStructures(
-                    predicate=predicate,
-                    argument=argument_list
-                )
-                arg_structures.append(arg_stuctures_obj)
-
-        #print(arg_structures)
-        self.tokens = tokens
-        self.arg_structures = arg_structures
