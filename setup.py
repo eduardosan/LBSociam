@@ -18,7 +18,7 @@ requires = [
 
 
 setup(name='LBSociam',
-      version='0.2',
+      version='0.3',
       description='LBSociam',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
@@ -37,9 +37,10 @@ setup(name='LBSociam',
       install_requires=requires,
       tests_require=requires,
       test_suite="lbsociam",
-      entry_points = """\
+      entry_points="""\
       [paste.paster_command]
         lbtwitter = lbsociam.commands:TwitterCommands
+        crime = lbsociam.commands:CrimeCommands
       """,
       )
 

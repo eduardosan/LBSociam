@@ -52,16 +52,6 @@ class CrimesBase(LBSociam):
             required=False
         ))
 
-        date = Field(**dict(
-            name='date',
-            description='Date for analysis criminal events',
-            alias='date',
-            datatype='Date',
-            indices=['Ordenado'],
-            multivalued=False,
-            required=True
-        ))
-
         homicide_list = Content()
 
         homicide_metadata = GroupMetadata(**dict(
@@ -258,7 +248,6 @@ class CrimesBase(LBSociam):
 
         content_list = Content()
         content_list.append(total)
-        content_list.append(date)
         content_list.append(homicide)
         content_list.append(theft)
         content_list.append(robbery)
@@ -302,7 +291,7 @@ class CrimesBase(LBSociam):
         :return: True or Error if base was not excluded
         """
         response = self.baserest.delete(self.lbbase)
-        if response.crimes_code == 200:
+        if response.status_code == 200:
             return True
         else:
             raise IOError('Error excluding base from LB')
@@ -338,7 +327,7 @@ class Crimes(crimes_base.metaclass):
         Inclusion date
         :return:
         """
-        return crimes_base.metaclass.inclusion_date.__get__(self)
+        return crimes_base.metaclass.date.__get__(self)
 
     @date.setter
     def date(self, value):
@@ -347,8 +336,10 @@ class Crimes(crimes_base.metaclass):
         """
         if isinstance(value, datetime.datetime):
             value = value.strftime("%d/%m/%Y")
+        elif value is None:
+            value = datetime.datetime.now().strftime("%d/%m/%Y")
 
-        crimes_base.metaclass.inclusion_date.__set__(self, value)
+        crimes_base.metaclass.date.__set__(self, value)
 
     def crimes_to_dict(self):
         """
