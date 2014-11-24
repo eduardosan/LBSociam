@@ -12,7 +12,8 @@ requires = [
     'nltk',
     'rdflib',
     'oauthlib',
-    'PasteScript'
+    'PasteScript',
+    'gensim'
     ]
 
 
