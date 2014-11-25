@@ -1,0 +1,175 @@
+#!/usr/env python
+# -*- coding: utf-8 -*-
+__author__ = 'eduardo'
+
+import logging
+import datetime
+from requests.exceptions import HTTPError
+from lbsociam import LBSociam
+from liblightbase import lbrest
+from liblightbase.lbbase.struct import Base, BaseMetadata
+from liblightbase.lbbase.lbstruct.group import *
+from liblightbase.lbbase.lbstruct.field import *
+from liblightbase.lbbase.content import Content
+from liblightbase.lbutils import conv
+
+log = logging.getLogger()
+
+
+class DictionaryBase(LBSociam):
+    """
+    Criminal data base
+    """
+    def __init__(self):
+        """
+        Construct for social networks data
+        :return:
+        """
+        LBSociam.__init__(self)
+        self.baserest = lbrest.BaseREST(
+            rest_url=self.lbgenerator_rest_url,
+            response_object=True
+        )
+        self.documentrest = lbrest.DocumentREST(
+            rest_url=self.lbgenerator_rest_url,
+            base=self.lbbase,
+            response_object=False
+        )
+
+    @property
+    def lbbase(self):
+        """
+        Generate LB Base object
+        :return:
+        """
+        token = Field(**dict(
+            name='token',
+            description='Dictionary token',
+            alias='token',
+            datatype='Text',
+            indices=['Ordenado', 'Unico'],
+            multivalued=False,
+            required=True
+        ))
+
+        stem = Field(**dict(
+            name='stem',
+            description='Token stem',
+            alias='stem',
+            datatype='Text',
+            indices=['Ordenado'],
+            multivalued=False,
+            required=False
+        ))
+
+        base_metadata = BaseMetadata(**dict(
+            name='dictionary',
+            description='Terms dictionary from social networks'
+        ))
+
+        content_list = Content()
+        content_list.append(token)
+        content_list.append(stem)
+
+        lbbase = Base(
+            metadata=base_metadata,
+            content=content_list
+        )
+
+        return lbbase
+
+    @property
+    def metaclass(self):
+        """
+        Retorna metaclass para essa base
+        """
+        return self.lbbase.metaclass()
+
+    def create_base(self):
+        """
+        Create a base to hold twitter information on Lightbase
+        :param Dictionary: One twitter Dictionary object to be base model
+        :return: LB Base object
+        """
+        lbbase = self.lbbase
+        response = self.baserest.create(lbbase)
+        #print(response.Dictionary_code)
+        if response.status_code == 200:
+            return lbbase
+        else:
+            return None
+
+    def remove_base(self):
+        """
+        Remove base from Lightbase
+        :param lbbase: LBBase object instance
+        :return: True or Error if base was not excluded
+        """
+        response = self.baserest.delete(self.lbbase)
+        if response.status_code == 200:
+            return True
+        else:
+            raise IOError('Error excluding base from LB')
+
+    def update_base(self):
+        """
+        Update base from LB Base
+        """
+        response = self.baserest.update(self.lbbase)
+        if response.Dictionary_code == 200:
+            return True
+        else:
+            raise IOError('Error updating LB Base structure')
+
+dictionary_base = DictionaryBase()
+
+
+class Dictionary(dictionary_base.metaclass):
+    """
+    Classe que armazena eventos de crime
+    """
+    def __init__(self, **args):
+        """
+        Construct for social networks data
+        :return:
+        """
+        super(Dictionary, self).__init__(**args)
+        self.dictionary_base = dictionary_base
+
+    def dictionary_to_dict(self):
+        """
+        Convert Dictionary object to Python dict
+        :return: dict for crime
+        """
+        return conv.document2dict(self.dictionary_base.lbbase, self)
+
+    def dictionary_to_json(self):
+        """
+        Convert object to json
+        :return: JSON for crime
+        """
+        return conv.document2json(self.dictionary_base.lbbase, self)
+
+    def create_dictionary(self):
+        """
+        Insert document on base
+        :return: Document creation Dictionary
+        """
+        document = self.dictionary_to_json()
+        try:
+            result = self.documentrest.create(document)
+        except HTTPError as err:
+            log.error(err.strerror)
+            return None
+
+        return result
+
+    def update(self, id_doc):
+        """
+        Update document
+        :param id_doc: Document ID
+        :return:
+        """
+        document = self.dictionary_to_json()
+        #print(document)
+        return self.documentrest.update(id=id_doc, document=document)

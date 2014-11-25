@@ -6,6 +6,8 @@ import unittest
 import datetime
 import json
 import lbsociam
+import os
+from . import lbs
 from liblightbase import lbrest
 from liblightbase.lbutils import conv
 from lbsociam.model import lbstatus, lbtwitter
@@ -28,6 +30,9 @@ class TestDictionary(unittest.TestCase):
         self.lbt = lbtwitter.Twitter(debug=False, term='crime')
         self.status_base = lbstatus.StatusBase()
         self.tw_status = self.lbt.search()
+        self.data_dir = os.path.join(lbs.lbsociam_data_dir, 'tests')
+        if not os.path.isdir(self.data_dir):
+            os.mkdir(self.data_dir)
 
         # Cria base
         self.lbbase = self.status_base.create_base()

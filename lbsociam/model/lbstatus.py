@@ -337,14 +337,14 @@ class Status(StatusClass):
         Convert status object to Python dict
         :return:
         """
-        return conv.document2dict(status_base.lbbase, self)
+        return conv.document2dict(self.status_base.lbbase, self)
 
     def status_to_json(self):
         """
         Convert object to json
         :return:
         """
-        return conv.document2json(status_base.lbbase, self)
+        return conv.document2json(self.status_base.lbbase, self)
 
     def create_status(self):
         """
@@ -354,7 +354,7 @@ class Status(StatusClass):
         """
         document = self.status_to_json()
         try:
-            result = status_base.documentrest.create(document)
+            result = self.status_base.documentrest.create(document)
         except HTTPError, err:
             log.error(err.strerror)
             return None
@@ -365,4 +365,4 @@ class Status(StatusClass):
         #print(self.arg_structures)
         document = self.status_to_json()
         #print(document)
-        return status_base.documentrest.update(id=id_doc, document=document)
+        return self.status_base.documentrest.update(id=id_doc, document=document)
