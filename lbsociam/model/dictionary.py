@@ -3,7 +3,7 @@
 __author__ = 'eduardo'
 
 import logging
-import datetime
+import requests
 from requests.exceptions import HTTPError
 from lbsociam import LBSociam
 from liblightbase import lbrest
@@ -12,6 +12,7 @@ from liblightbase.lbbase.lbstruct.group import *
 from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
 from liblightbase.lbutils import conv
+from liblightbase.lbsearch.search import *
 
 log = logging.getLogger()
 
@@ -35,6 +36,15 @@ class DictionaryBase(LBSociam):
             base=self.lbbase,
             response_object=False
         )
+
+    def __iter__(self):
+        """
+        When a dictionary loop is requested make one request at a time
+        :return: JSON with dictionary data
+        """
+        id_list = self.get_document_ids()
+        for id_doc in id_list:
+            yield self.get_document(id_doc)
 
     @property
     def lbbase(self):
@@ -121,6 +131,39 @@ class DictionaryBase(LBSociam):
         else:
             raise IOError('Error updating LB Base structure')
 
+    def get_document_ids(self):
+        """
+        Build a lis with all document ID's
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        select = ['id_doc']
+        search = Search(
+            select=select,
+            limit=None,
+            order_by=orderby
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+        saida = list()
+        # Cria uma lista de resultados como ID
+        for results in collection['results']:
+            saida.append(results['_metadata']['id_doc'])
+
+        return saida
+
+    def get_document(self, id_doc):
+        """
+        Return document data
+        """
+        return self.documentrest.get(id_doc)
+
 dictionary_base = DictionaryBase()
 
 
@@ -157,7 +200,7 @@ class Dictionary(dictionary_base.metaclass):
         """
         document = self.dictionary_to_json()
         try:
-            result = self.documentrest.create(document)
+            result = self.dictionary_base.documentrest.create(document)
         except HTTPError as err:
             log.error(err.strerror)
             return None
@@ -172,4 +215,4 @@ class Dictionary(dictionary_base.metaclass):
         """
         document = self.dictionary_to_json()
         #print(document)
-        return self.documentrest.update(id=id_doc, document=document)
+        return self.dictionary_base.documentrest.update(id=id_doc, document=document)

@@ -10,7 +10,7 @@ import os
 from . import lbs
 from liblightbase import lbrest
 from liblightbase.lbutils import conv
-from lbsociam.model import lbstatus, lbtwitter
+from lbsociam.model import lbstatus, lbtwitter, dictionary as model_dict
 from lbsociam.lib import srl, dictionary
 from gensim import corpora
 from gensim.models import ldamodel
@@ -84,6 +84,9 @@ class TestDictionary(unittest.TestCase):
         result = self.status_base.documentrest.create(status_json)
         self.status.append(status)
 
+        # Base de dicionário
+        self.dictionary_base = model_dict.DictionaryBase()
+
     def test_dictionary_mapping(self):
         """
         Mapeia tokens extraídos em um dicionário do gensim
@@ -100,6 +103,61 @@ class TestDictionary(unittest.TestCase):
         #corpora.BleiCorpus.serialize('/tmp/corpus.lda-c', corpus)
         model = ldamodel.LdaModel(corpus, id2word=dic, num_topics=2)
         print(model.print_topics(num_topics=2))
+
+    def test_dictionary_store(self):
+        """
+        Test dictionary data store in REST
+        """
+        dic = dictionary.create_from_status(self.status_base)
+        #print(dic.token2id)
+        #dic.save('/tmp/test.mm')
+        self.assertIsInstance(dic, corpora.Dictionary)
+
+        # Cria base de dicionários
+        self.dictionary_base.create_base()
+
+        # Armazena dicionário na base
+        tokens = dic.token2id
+        #print(tokens)
+        for elm in tokens.keys():
+            #print(elm)
+            dic_elm = model_dict.Dictionary(
+                token=elm
+            )
+            result = dic_elm.create_dictionary()
+            #self.assertIsNotNone(result)
+
+        # Remove base
+        self.dictionary_base.remove_base()
+
+    def test_dictionary_access(self):
+        """
+        Test async access to dictionary data
+        """
+        dic = dictionary.create_from_status(self.status_base)
+        self.assertIsInstance(dic, corpora.Dictionary)
+
+        # Cria base de dicionários
+        self.dictionary_base.create_base()
+
+        # Armazena dicionário na base
+        tokens = dic.token2id
+        #print(tokens)
+        for elm in tokens.keys():
+            #print(elm)
+            dic_elm = model_dict.Dictionary(
+                token=elm
+            )
+            result = dic_elm.create_dictionary()
+            #self.assertIsNotNone(result)
+
+        # Test async access to dictionary data
+        for elm in self.dictionary_base:
+            #print(elm)
+            self.assertIsNotNone(elm)
+
+        # Remove base
+        self.dictionary_base.remove_base()
 
     def tearDown(self):
         """
