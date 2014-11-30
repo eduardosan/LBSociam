@@ -3,6 +3,7 @@
 __author__ = 'eduardo'
 import datetime
 import logging
+import requests
 from requests.exceptions import HTTPError
 from lbsociam import LBSociam
 from liblightbase import lbrest
@@ -11,6 +12,7 @@ from liblightbase.lbbase.struct import Base, BaseMetadata
 from liblightbase.lbbase.lbstruct.group import *
 from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
+from liblightbase.lbsearch.search import *
 
 log = logging.getLogger()
 
@@ -34,6 +36,15 @@ class StatusBase(LBSociam):
             base=self.lbbase,
             response_object=False
         )
+
+    def __iter__(self):
+        """
+        When a dictionary loop is requested make one request at a time
+        :return: JSON with dictionary data
+        """
+        id_list = self.get_document_ids()
+        for id_doc in id_list:
+            yield self.get_document(id_doc)
 
     @property
     def lbbase(self):
@@ -251,6 +262,39 @@ class StatusBase(LBSociam):
             return True
         else:
             raise IOError('Error updating LB Base structure')
+
+    def get_document_ids(self):
+        """
+        Build a lis with all document ID's
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        select = ['id_doc']
+        search = Search(
+            select=select,
+            limit=None,
+            order_by=orderby
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+        saida = list()
+        # Cria uma lista de resultados como ID
+        for results in collection['results']:
+            saida.append(results['_metadata']['id_doc'])
+
+        return saida
+
+    def get_document(self, id_doc):
+        """
+        Return document data
+        """
+        return self.documentrest.get(id_doc)
 
 status_base = StatusBase()
 StatusClass = status_base.metaclass
