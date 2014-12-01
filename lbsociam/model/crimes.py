@@ -103,6 +103,16 @@ class CrimesBase(LBSociam):
             required=True
         ))
 
+        images = Field(**dict(
+            name='images',
+            description='Taxonomy related images',
+            alias='images',
+            datatype='File',
+            indices=[],
+            multivalued=True,
+            required=False
+        ))
+
         base_metadata = BaseMetadata(**dict(
             name='crime',
             description='Criminal data from social networks',
@@ -122,6 +132,7 @@ class CrimesBase(LBSociam):
         content_list.append(description)
         content_list.append(tokens)
         content_list.append(date)
+        content_list.append(images)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -185,6 +196,12 @@ class CrimesBase(LBSociam):
         results = self.documentrest.get_collection(search)
         return results
 
+    def get_document(self, id_doc):
+        """
+        Get document by ID on base
+        """
+        results = self.documentrest.get(id_doc)
+        return results
 
 crimes_base = CrimesBase()
 
