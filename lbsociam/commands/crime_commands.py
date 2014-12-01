@@ -39,10 +39,10 @@ class CrimeCommands(command.Command):
                       help='Terms to use in social networks search'
     )
 
-    parser.add_option('-g', '--group',
+    parser.add_option('-c', '--categories',
                       action='store',
-                      dest='group',
-                      help='Group to store information'
+                      dest='categories',
+                      help='Category to store information'
     )
 
     def __init__(self, name):
@@ -80,7 +80,7 @@ class CrimeCommands(command.Command):
         """
         crimes_lbbase = self.crimes_base.create_base()
         if isinstance(crimes_lbbase, Base):
-            log.info("Status base created")
+            log.info("Crimes base created")
         else:
             raise StandardError
 
@@ -92,7 +92,7 @@ class CrimeCommands(command.Command):
         """
         result = self.crimes_base.update_base()
         if result:
-            log.info("Status base updated")
+            log.info("Crimes base updated")
         else:
             raise StandardError
 
@@ -112,9 +112,9 @@ class CrimeCommands(command.Command):
 
     def insert_tokens(self):
         """
-        Insert tokens on selected group
+        Insert tokens on selected taxonomy
         """
-        if self.options.group is None:
+        if self.options.categories is None:
             raise StandardError("You have to supply crime type")
 
         orderby = OrderBy(asc=['id_doc'])

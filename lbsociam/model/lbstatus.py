@@ -59,7 +59,17 @@ class StatusBase(LBSociam):
             datatype='Date',
             indices=['Ordenado'],
             multivalued=False,
-            required=True
+            required=False
+        ))
+
+        inclusion_datetime = Field(**dict(
+            name='inclusion_datetime',
+            description='Attribute inclusion date',
+            alias='inclusion_datetime',
+            datatype='DateTime',
+            indices=['Ordenado'],
+            multivalued=False,
+            required=False
         ))
 
         origin = Field(**dict(
@@ -192,6 +202,7 @@ class StatusBase(LBSociam):
 
         content_list = Content()
         content_list.append(inclusion_date)
+        content_list.append(inclusion_datetime)
         content_list.append(text)
         content_list.append(search_term)
         content_list.append(tokens)
@@ -333,9 +344,35 @@ class Status(StatusClass):
         """
         if isinstance(value, datetime.datetime):
             value = value.strftime("%d/%m/%Y")
+        elif value is None:
+            value = datetime.datetime.now().strftime("%d/%m/%Y")
+        else:
+            # Try to format string
+            value = datetime.datetime.strptime(value, "%d/%m/%Y").strftime("%d/%m/%Y")
 
         StatusClass.inclusion_date.__set__(self, value)
+    @property
+    def inclusion_datetime(self):
+        """
+        Inclusion date
+        :return:
+        """
+        return StatusClass.inclusion_datetime.__get__(self)
 
+    @inclusion_datetime.setter
+    def inclusion_datetime(self, value):
+        """
+        Inclusion date setter
+        """
+        if isinstance(value, datetime.datetime):
+            value = value.strftime("%d/%m/%Y %H:%M:%S")
+        elif value is None:
+            value = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        else:
+            # Try to format string
+            value = datetime.datetime.strptime(value, "%d/%m/%Y %H:%M:%S").strftime("%d/%m/%Y %H:%M:%S")
+
+        StatusClass.inclusion_datetime.__set__(self, value)
 
     @property
     def tokens(self):

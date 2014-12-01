@@ -12,6 +12,7 @@ from liblightbase.lbbase.lbstruct.group import *
 from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
 from liblightbase.lbutils import conv
+from liblightbase.lbsearch.search import *
 
 log = logging.getLogger()
 
@@ -42,6 +43,46 @@ class CrimesBase(LBSociam):
         Generate LB Base object
         :return:
         """
+        category_name = Field(**dict(
+            name='category_name',
+            description='category name',
+            alias='category_name',
+            datatype='Text',
+            indices=['Ordenado', 'Unico'],
+            multivalued=False,
+            required=True
+        ))
+        
+        category_pretty_name = Field(**dict(
+            name='category_pretty_name',
+            description='category pretty name',
+            alias='category_pretty_name',
+            datatype='Text',
+            indices=['Ordenado'],
+            multivalued=False,
+            required=True
+        ))
+        
+        description = Field(**dict(
+            name='description',
+            description='category description',
+            alias='description',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+        
+        tokens = Field(**dict(
+            name='tokens',
+            description='Identified tokens for this category',
+            alias='tokens',
+            datatype='Text',
+            indices=['Ordenado'],
+            multivalued=True,
+            required=False
+        ))
+        
         total = Field(**dict(
             name='total',
             description='Total criminal events',
@@ -52,187 +93,15 @@ class CrimesBase(LBSociam):
             required=False
         ))
 
-        homicide_list = Content()
-
-        homicide_metadata = GroupMetadata(**dict(
-            name='homicide',
-            alias='homicide',
-            description='Homicide crimes',
-            multivalued=False
+        date = Field(**dict(
+            name='date',
+            description='Taxonomy last update',
+            alias='date',
+            datatype='DateTime',
+            indices=['Ordenado'],
+            multivalued=False,
+            required=True
         ))
-
-        homicide_tokens = Field(**dict(
-            name='homicide_tokens',
-            alias='homicide_tokens',
-            description='Selected search tokens for homicides',
-            datatype='Text',
-            indices=['Textual'],
-            multivalued=True,
-            required=False
-        ))
-
-        homicide_list.append(homicide_tokens)
-
-        homicide = Group(
-            metadata=homicide_metadata,
-            content=homicide_list
-        )
-
-        theft_list = Content()
-
-        theft_metadata = GroupMetadata(**dict(
-            name='theft',
-            alias='theft',
-            description='Larceny/Theft Offenses',
-            multivalued=False
-        ))
-
-        theft_tokens = Field(**dict(
-            name='theft_tokens',
-            alias='theft_tokens',
-            description='Selected search tokens for larceny/theft',
-            datatype='Text',
-            indices=['Textual'],
-            multivalued=True,
-            required=False
-        ))
-
-        theft_list.append(theft_tokens)
-
-        theft = Group(
-            metadata=theft_metadata,
-            content=theft_list
-        )
-
-        robbery_list = Content()
-
-        robbery_metadata = GroupMetadata(**dict(
-            name='robbery',
-            alias='robbery',
-            description='Robbery crimes',
-            multivalued=False
-        ))
-
-        robbery_tokens = Field(**dict(
-            name='robbery_tokens',
-            alias='robbery_tokens',
-            description='Selected search tokens for robbery',
-            datatype='Text',
-            indices=['Textual'],
-            multivalued=True,
-            required=False
-        ))
-
-        robbery_list.append(robbery_tokens)
-
-        robbery = Group(
-            metadata=robbery_metadata,
-            content=robbery_list
-        )
-
-        drugs_list = Content()
-
-        drugs_metadata = GroupMetadata(**dict(
-            name='drugs',
-            alias='drugs',
-            description='Drug traffic crimes',
-            multivalued=False
-        ))
-
-        drugs_tokens = Field(**dict(
-            name='drugs_tokens',
-            alias='drugs_tokens',
-            description='Selected search tokens for drugs',
-            datatype='Text',
-            indices=['Textual'],
-            multivalued=True,
-            required=False
-        ))
-
-        drugs_list.append(drugs_tokens)
-
-        drugs = Group(
-            metadata=drugs_metadata,
-            content=drugs_list
-        )
-
-        gunfire_list = Content()
-
-        gunfire_metadata = GroupMetadata(**dict(
-            name='gunfire',
-            alias='gunfire',
-            description='Gunfire possession',
-            multivalued=False
-        ))
-
-        gunfire_tokens = Field(**dict(
-            name='gunfire_tokens',
-            alias='gunfire_tokens',
-            description='Selected search tokens for gunfire possession',
-            datatype='Text',
-            indices=['Textual'],
-            multivalued=True,
-            required=False
-        ))
-
-        gunfire_list.append(gunfire_tokens)
-
-        gunfire = Group(
-            metadata=gunfire_metadata,
-            content=gunfire_list
-        )
-
-        assault_list = Content()
-
-        assault_metadata = GroupMetadata(**dict(
-            name='assault',
-            alias='assault',
-            description='Sssault crimes',
-            multivalued=False
-        ))
-
-        assault_tokens = Field(**dict(
-            name='assault_tokens',
-            alias='assault_tokens',
-            description='Selected search tokens for assault',
-            datatype='Text',
-            indices=['Textual'],
-            multivalued=True,
-            required=False
-        ))
-
-        assault_list.append(assault_tokens)
-
-        assault = Group(
-            metadata=assault_metadata,
-            content=assault_list
-        )
-
-        others_list = Content()
-
-        others_metadata = GroupMetadata(**dict(
-            name='others',
-            alias='others',
-            description='Other crimes',
-            multivalued=False
-        ))
-
-        others_tokens = Field(**dict(
-            name='others_tokens',
-            alias='others_tokens',
-            description='Selected search tokens for others',
-            datatype='Text',
-            indices=['Textual'],
-            multivalued=True,
-            required=False
-        ))
-
-        others_list.append(others_tokens)
-
-        others = Group(
-            metadata=others_metadata,
-            content=others_list
-        )
 
         base_metadata = BaseMetadata(**dict(
             name='crime',
@@ -248,13 +117,11 @@ class CrimesBase(LBSociam):
 
         content_list = Content()
         content_list.append(total)
-        content_list.append(homicide)
-        content_list.append(theft)
-        content_list.append(robbery)
-        content_list.append(drugs)
-        content_list.append(gunfire)
-        content_list.append(assault)
-        content_list.append(others)
+        content_list.append(category_name)
+        content_list.append(category_pretty_name)
+        content_list.append(description)
+        content_list.append(tokens)
+        content_list.append(date)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -301,10 +168,23 @@ class CrimesBase(LBSociam):
         Update base from LB Base
         """
         response = self.baserest.update(self.lbbase)
-        if response.crimes_code == 200:
+        if response.status_code == 200:
             return True
         else:
             raise IOError('Error updating LB Base structure')
+
+    def list(self):
+        """
+        List all documents in base
+        """
+        orderby = OrderBy(['id_doc'])
+        search = Search(
+            limit=None,
+            order_by=orderby
+        )
+        results = self.documentrest.get_collection(search)
+        return results
+
 
 crimes_base = CrimesBase()
 
@@ -335,9 +215,12 @@ class Crimes(crimes_base.metaclass):
         Inclusion date setter
         """
         if isinstance(value, datetime.datetime):
-            value = value.strftime("%d/%m/%Y")
+            value = value.strftime("%d/%m/%Y %H:%M:%S")
         elif value is None:
-            value = datetime.datetime.now().strftime("%d/%m/%Y")
+            value = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        else:
+            # Try to format string
+            value = datetime.datetime.strptime(value, "%d/%m/%Y %H:%M:%S").strftime("%d/%m/%Y %H:%M:%S")
 
         crimes_base.metaclass.date.__set__(self, value)
 
@@ -362,7 +245,7 @@ class Crimes(crimes_base.metaclass):
         """
         document = self.crimes_to_json()
         try:
-            result = self.documentrest.create(document)
+            result = self.crimes_base.documentrest.create(document)
         except HTTPError, err:
             log.error(err.strerror)
             return None
@@ -377,4 +260,4 @@ class Crimes(crimes_base.metaclass):
         """
         document = self.crimes_to_json()
         #print(document)
-        return self.documentrest.update(id=id_doc, document=document)
+        return self.crimes_base.documentrest.update(id=id_doc, document=document)

@@ -196,6 +196,7 @@ class TwitterCommands(command.Command):
             status = lbstatus.Status(
                 origin='twitter',
                 inclusion_date=datetime.datetime.now(),
+                inclusion_datetime=datetime.datetime.now(),
                 search_term=self.options.terms,
                 text=elm.text,
                 source=status_json,
@@ -218,6 +219,9 @@ class TwitterCommands(command.Command):
             order_by=orderby
         )
         self.status_base.documentrest.response_object = False
+
+        # Make sure we don't have to validate returned structures from base
+        self.status_base.metaclass.__valreq__ = False
         collection = self.status_base.documentrest.get_collection(search)
         for i in range(0, 10):
             try:
