@@ -4,6 +4,7 @@ __author__ = 'eduardo'
 
 import logging
 import datetime
+import requests
 from requests.exceptions import HTTPError
 from lbsociam import LBSociam
 from liblightbase import lbrest
@@ -200,8 +201,15 @@ class CrimesBase(LBSociam):
         """
         Get document by ID on base
         """
-        results = self.documentrest.get(id_doc)
-        return results
+        url = self.lbgenerator_rest_url + '/' + self.lbbase._metadata.name + '/doc/' + id_doc
+        response = requests.get(
+            url=url
+        )
+        #results = self.documentrest.get(id_doc)
+        if response.status_code >= 300:
+            return None
+
+        return response.json()
 
 crimes_base = CrimesBase()
 
