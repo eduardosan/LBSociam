@@ -117,6 +117,16 @@ class CrimesBase(LBSociam):
             required=False
         ))
 
+        default_token = Field(**dict(
+            name='default_token',
+            description='Default token for this category',
+            alias='default_token',
+            datatype='Text',
+            indices=['Ordenado'],
+            multivalued=False,
+            required=False
+        ))
+
         base_metadata = BaseMetadata(**dict(
             name='crime',
             description='Criminal data from social networks',
@@ -137,6 +147,7 @@ class CrimesBase(LBSociam):
         content_list.append(tokens)
         content_list.append(date)
         content_list.append(images)
+        content_list.append(default_token)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -197,7 +208,17 @@ class CrimesBase(LBSociam):
             limit=None,
             order_by=orderby
         )
-        results = self.documentrest.get_collection(search)
+        params = {
+            '$$': search._asjson()
+        }
+
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
+        result = requests.get(
+            url=url,
+            params=params
+        )
+        results = result.json()
+
         return results
 
     def get_document(self, id_doc):
@@ -297,6 +318,58 @@ class CrimesBase(LBSociam):
         response.text = result
 
         return response
+
+    def update_path(self, id_doc, path, value):
+        """
+        Update base in proposed path
+        """
+        response = Response(content_type='application/json')
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc/' + id_doc
+        url = url + '/' + path
+        params = {
+            'value': value
+        }
+
+        result = requests.put(
+            url=url,
+            data=params
+        )
+
+        if result.status_code >= 300:
+            response.status_code = 500
+            response.text = result.text
+
+            return response
+
+        response.status_code = 200
+        response.text = result
+
+        return response
+
+    def get_crime_by_name(self, name):
+        """
+        Return a crime by name
+        """
+        orderby = OrderBy(['category_name'])
+        search = Search(
+            limit=1,
+            order_by=orderby,
+            literal="document->>'category_name' = '" + name + "'",
+        )
+        params = {
+            '$$': search._asjson()
+        }
+
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
+        result = requests.get(
+            url=url,
+            params=params
+        )
+        results = result.json()
+        response = results['results'][0]
+
+        return response
+
 
 crimes_base = CrimesBase()
 

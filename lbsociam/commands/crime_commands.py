@@ -45,6 +45,20 @@ class CrimeCommands(command.Command):
                       help='Category to store information'
     )
 
+    parser.add_option('-f', '--field',
+                      action='store',
+                      dest='field',
+                      help='Field to be updated'
+    )
+
+    parser.add_option('-a', '--value',
+                      action='store',
+                      dest='value',
+                      help='Value to be used in update'
+    )
+
+
+
     def __init__(self, name):
         """
         Constructor method
@@ -70,6 +84,9 @@ class CrimeCommands(command.Command):
             return
         if cmd == 'update_base':
             self.update_base()
+            return
+        if cmd == 'update_field':
+            self.update_field()
             return
         else:
             log.error('Command "%s" not recognized' % (cmd,))
@@ -125,3 +142,22 @@ class CrimeCommands(command.Command):
         )
         self.crimes_base.documentrest.response_object = False
         result = self.crimes_base.documentrest.get_collection(search)
+
+    def update_field(self):
+        """
+        Update field with supplied value
+        """
+        if self.options.categories is None:
+            raise StandardError("You have to supply crime type")
+
+        if self.options.value is None:
+            raise StandardError("You have to supply crime value")
+
+        if self.options.field is None:
+            raise StandardError("You have to supply crime field")
+
+        crime = self.crimes_base.get_crime_by_name(self.options.categories)
+        crime[self.options.field] = self.options.value
+
+        self.crimes_base.update_document(crime['_metadata']['id_doc'], crime)
+        return

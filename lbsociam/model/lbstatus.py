@@ -274,6 +274,21 @@ class StatusBase(LBSociam):
         else:
             raise IOError('Error updating LB Base structure')
 
+    def get_base(self):
+        """
+        Get base
+        :return: Base JSON object
+        """
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
+        response = requests.get(
+            url=url
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise IOError('Error getting LB Base structure')
+
     def get_document_ids(self):
         """
         Build a lis with all document ID's
@@ -306,6 +321,30 @@ class StatusBase(LBSociam):
         Return document data
         """
         return self.documentrest.get(id_doc)
+
+    def search_by_token(self, token, limit=10):
+        """
+        Search status by content
+        """
+        orderby = OrderBy(['tokens'])
+        search = Search(
+            limit=limit,
+            order_by=orderby,
+            literal="document->>'tokens' = '" + token + "'",
+        )
+        params = {
+            '$$': search._asjson()
+        }
+
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
+        result = requests.get(
+            url=url,
+            params=params
+        )
+        results = result.json()
+        response = results
+
+        return response
 
 status_base = StatusBase()
 StatusClass = status_base.metaclass

@@ -164,6 +164,30 @@ class DictionaryBase(LBSociam):
         """
         return self.documentrest.get(id_doc)
 
+    def get_by_token(self, token):
+        """
+        Return a crime by name
+        """
+        orderby = OrderBy(['token'])
+        search = Search(
+            limit=1,
+            order_by=orderby,
+            literal="document->>'token' = '" + token + "'",
+        )
+        params = {
+            '$$': search._asjson()
+        }
+
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
+        result = requests.get(
+            url=url,
+            params=params
+        )
+        results = result.json()
+        response = results['results'][0]
+
+        return response
+
 dictionary_base = DictionaryBase()
 
 
@@ -203,6 +227,9 @@ class Dictionary(dictionary_base.metaclass):
             result = self.dictionary_base.documentrest.create(document)
         except HTTPError as err:
             log.error(err.strerror)
+
+            # Provavelmente é repetido. Tenta retornar a última ocorrência e adiciona um contador
+            #dic = self.dictionary_base.get_by_token(self.token)
             return None
 
         return result
