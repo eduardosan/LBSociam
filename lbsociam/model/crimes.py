@@ -5,6 +5,7 @@ __author__ = 'eduardo'
 import logging
 import datetime
 import requests
+import json
 from requests.exceptions import HTTPError
 from lbsociam import LBSociam
 from liblightbase import lbrest
@@ -14,6 +15,8 @@ from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
 from liblightbase.lbutils import conv
 from liblightbase.lbsearch.search import *
+from pyramid.response import Response
+
 
 log = logging.getLogger()
 
@@ -201,15 +204,99 @@ class CrimesBase(LBSociam):
         """
         Get document by ID on base
         """
-        url = self.lbgenerator_rest_url + '/' + self.lbbase._metadata.name + '/doc/' + id_doc
-        response = requests.get(
-            url=url
-        )
-        #results = self.documentrest.get(id_doc)
-        if response.status_code >= 300:
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc/' + id_doc
+        response = requests.get(url)
+        if response.status_code > 300:
             return None
 
         return response.json()
+
+    def update_document(self, id_doc, new_document):
+        """
+        Update document
+        :param id_doc: Document ID
+        :return:
+        """
+        document = json.dumps(new_document)
+        #print(document)
+        return self.documentrest.update(id=id_doc, document=document)
+
+    def upload_file(self, fileobj):
+        """
+        Upload file on LB
+        """
+        url = self.lbgenerator_rest_url + "/" + self.lbbase._metadata.name + "/file"
+        result = requests.post(
+            url=url,
+            files={
+                'file': fileobj.file.read()
+            }
+        )
+
+        return result
+
+    def update_file_document(self, id_doc, file_dict):
+        """
+        Insert file in document
+        """
+        url = self.lbgenerator_rest_url + "/" + self.lbbase._metadata.name + \
+              "/doc/" + id_doc + '/images'
+
+        log.debug("URL para insercao dos atributos da imagem %s", url)
+        log.debug(file_dict)
+
+        result = requests.post(
+            url=url,
+            data={
+                'value': json.dumps(file_dict)
+            }
+        )
+
+        return result
+
+    def remove_file(self, id_doc, id_file):
+        """
+        Remove image from base
+        """
+        # First gets document
+        document = self.get_document(id_doc)
+
+        # Now create a new image dict removing selected files
+        new_image = list()
+        for image in document.get('images'):
+            if image['id_file'] != id_file:
+                new_image.append(image)
+
+        # Finally update document and submit it back to base
+        document['images'] = new_image
+
+        response = Response(content_type='application/json')
+        try:
+            log.debug(document)
+            result = self.update_document(id_doc, document)
+        except HTTPError as e:
+
+            response.status_code = 500
+            response.text = e.message
+
+            return response
+
+        # TODO: Not yet implemented. Need fix
+        # Now remove file from database
+        #url = self.lbgenerator_rest_url + '/' + self.lbbase._metadata.name + '/' + id_file
+        #result = requests.delete(
+        #    url=url
+        #)
+        #if result.status_code >= 300:
+        #    response.status_code = result.status_code
+        #    response.text = result.text
+
+        #    return response
+
+        response.status_code = 200
+        response.text = result
+
+        return response
 
 crimes_base = CrimesBase()
 
