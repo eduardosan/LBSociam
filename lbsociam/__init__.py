@@ -26,3 +26,5 @@ class LBSociam(object):
         else:
             os.mkdir(lbsociam_data_dir)
             self.lbsociam_data_dir = lbsociam_data_dir
+        self.processes = config.get('lbsociam', 'processes')
+        self.max_size = config.get('lbsociam', 'max_size')

@@ -7,6 +7,7 @@ import datetime
 import json
 import lbsociam
 import os
+import nltk
 from . import lbs
 from liblightbase import lbrest
 from liblightbase.lbutils import conv
@@ -134,6 +135,7 @@ class TestDictionary(unittest.TestCase):
         """
         Test async access to dictionary data
         """
+        stemmer = nltk.stem.RSLPStemmer()
         dic = dictionary.create_from_status(self.status_base)
         self.assertIsInstance(dic, corpora.Dictionary)
 
@@ -145,8 +147,10 @@ class TestDictionary(unittest.TestCase):
         #print(tokens)
         for elm in tokens.keys():
             #print(elm)
+            stem = stemmer.stem(elm)
             dic_elm = model_dict.Dictionary(
-                token=elm
+                token=elm,
+                stem=stem
             )
             result = dic_elm.create_dictionary()
             #self.assertIsNotNone(result)

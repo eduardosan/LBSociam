@@ -1,5 +1,7 @@
 [lbsociam]
 data_dir = /srv/lbsociam-py2/lbsociam_data
+processes = 10
+max_size = 4096
 
 [nltk]
 data_dir = /srv/lbsociam-py2/nltk_data

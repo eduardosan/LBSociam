@@ -3,6 +3,7 @@
 __author__ = 'eduardo'
 
 import logging
+import os
 from paste.script import command
 from lbsociam.model import dictionary, lbstatus
 from lbsociam.lib import dictionary as dictionary_lib
@@ -34,16 +35,11 @@ class DictionaryCommands(command.Command):
 
     parser = command.Command.standard_parser(verbose=True)
 
-    parser.add_option('-t', '--terms',
-                      action='store',
-                      dest='terms',
-                      help='Terms to use in social networks search'
-    )
-
-    parser.add_option('-g', '--group',
-                      action='store',
-                      dest='group',
-                      help='Group to store information'
+    parser.add_option(
+        '-o', '--outfile',
+        action='store',
+        dest='outfile',
+        help='File to use in dictionary serialization'
     )
 
     def __init__(self, name):
@@ -75,6 +71,9 @@ class DictionaryCommands(command.Command):
             return
         if cmd == 'insert_from_status':
             self.insert_from_status()
+            return
+        if cmd == 'dict_file':
+            self.dict_file()
             return
         else:
             log.error('Command "%s" not recognized' % (cmd,))
@@ -119,5 +118,33 @@ class DictionaryCommands(command.Command):
         """
         Insert tokens on selected group
         """
-        result = dictionary_lib.insert_from_status(self.status_base)
+        if self.options.outfile is None:
+            result = dictionary_lib.insert_from_status(self.status_base)
+        else:
+            dic_dir = self.dictionary_base.lbsociam_data_dir + '/corpus'
+            if not os.path.isdir(dic_dir):
+                os.mkdir(dic_dir)
+
+            outfile = dic_dir + '/' + self.options.outfile
+            log.debug("Saving results on file %s", outfile)
+            result = dictionary_lib.insert_from_status(self.status_base, outfile)
+
+        return result
+
+    def dict_file(self):
+        """
+        Create dict file
+        """
+        if self.options.outfile is None:
+            log.error("You have to supply an outfile")
+            return
+
+        dic_dir = self.dictionary_base.lbsociam_data_dir + '/corpus'
+        if not os.path.isdir(dic_dir):
+            os.mkdir(dic_dir)
+
+        outfile = dic_dir + '/' + self.options.outfile
+        log.debug("Saving results on file %s", outfile)
+        result = dictionary_lib.create_from_status(self.status_base, outfile)
+
         return result

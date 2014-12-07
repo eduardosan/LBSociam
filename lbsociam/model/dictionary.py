@@ -72,6 +72,16 @@ class DictionaryBase(LBSociam):
             required=False
         ))
 
+        frequency = Field(**dict(
+            name='frequency',
+            description='Term frequency on last dict update',
+            alias='frequency',
+            datatype='Decimal',
+            indices=['Ordenado'],
+            multivalued=False,
+            required=False
+        ))
+
         base_metadata = BaseMetadata(**dict(
             name='dictionary',
             description='Terms dictionary from social networks'
@@ -80,6 +90,7 @@ class DictionaryBase(LBSociam):
         content_list = Content()
         content_list.append(token)
         content_list.append(stem)
+        content_list.append(frequency)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -187,6 +198,32 @@ class DictionaryBase(LBSociam):
         response = results['results'][0]
 
         return response
+
+    def export(self, outfile, offset=0, limit=100):
+        orderby = OrderBy(asc=['id_doc'])
+        select = ['id_doc', 'token']
+        search = Search(
+            select=select,
+            limit=limit,
+            offset=offset,
+            order_by=orderby
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+        saida = list()
+        # Cria uma lista de resultados como ID
+        for results in collection['results']:
+            saida.append(results['_metadata']['id_doc'])
+
+        return saida
+
 
 dictionary_base = DictionaryBase()
 

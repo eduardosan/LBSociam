@@ -310,7 +310,11 @@ class StatusBase(LBSociam):
         response = requests.get(url, params=vars)
         collection = response.json()
         saida = list()
+
         # Cria uma lista de resultados como ID
+        if collection.get('results') is None:
+            return None
+
         for results in collection['results']:
             saida.append(results['_metadata']['id_doc'])
 
