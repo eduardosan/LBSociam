@@ -223,7 +223,7 @@ def process_tokens(params):
 
     result = lbstatus.get_document(params['status_id'])
 
-    if getattr(result, 'tokens') is not None:
+    if getattr(result, 'tokens', default=None) is not None:
             # Search for the events as argument
             tokens = list()
             for structure in result.arg_structures:
