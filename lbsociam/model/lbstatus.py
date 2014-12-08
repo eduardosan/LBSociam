@@ -289,7 +289,7 @@ class StatusBase(LBSociam):
         else:
             raise IOError('Error getting LB Base structure')
 
-    def get_document_ids(self):
+    def get_document_ids(self, offset=0):
         """
         Build a lis with all document ID's
         """
@@ -298,7 +298,8 @@ class StatusBase(LBSociam):
         search = Search(
             select=select,
             limit=None,
-            order_by=orderby
+            order_by=orderby,
+            offset=offset
         )
         url = self.documentrest.rest_url
         url += "/" + self.lbbase._metadata.name + "/doc"

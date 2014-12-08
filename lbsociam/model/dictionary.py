@@ -76,7 +76,7 @@ class DictionaryBase(LBSociam):
             name='frequency',
             description='Term frequency on last dict update',
             alias='frequency',
-            datatype='Decimal',
+            datatype='Integer',
             indices=['Ordenado'],
             multivalued=False,
             required=False
@@ -195,7 +195,10 @@ class DictionaryBase(LBSociam):
             params=params
         )
         results = result.json()
-        response = results['results'][0]
+        if len(results['results']) > 0:
+            response = results['results'][0]
+        else:
+            response = None
 
         return response
 
@@ -280,3 +283,34 @@ class Dictionary(dictionary_base.metaclass):
         document = self.dictionary_to_json()
         #print(document)
         return self.dictionary_base.documentrest.update(id=id_doc, document=document)
+
+    def get_id_doc(self):
+        """
+        Return a crime by name
+        """
+        orderby = OrderBy(['token'])
+        search = Search(
+            limit=1,
+            order_by=orderby,
+            literal="document->>'token' = '" + self.token + "'",
+        )
+        params = {
+            '$$': search._asjson()
+        }
+
+        url = self.dictionary_base.lbgenerator_rest_url + '/' + self.dictionary_base.lbbase.metadata.name + '/doc'
+        result = requests.get(
+            url=url,
+            params=params
+        )
+        results = result.json()
+        if results.get('results') is None:
+            return None
+
+        if len(results['results']) > 0:
+            response = results['results'][0]['_metadata']['id_doc']
+            self.frequency = results['results'][0]['frequency']
+        else:
+            response = None
+
+        return response

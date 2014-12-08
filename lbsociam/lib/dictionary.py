@@ -125,6 +125,11 @@ def insert_from_status(lbstatus, outfile=None):
     done_queue = Queue()
     processes = int(lbstatus.processes)
 
+    # As we are reprocessing tokens, it is necessary to clear frequency
+    dic_base = dictionary.DictionaryBase()
+    dic_base.remove_base()
+    dic_base.create_base()
+
     id_status_list = lbstatus.get_document_ids()
     if id_status_list is None:
         log.error("No status found. Import some status first")
@@ -140,12 +145,12 @@ def insert_from_status(lbstatus, outfile=None):
     for i in range(processes):
         # Permite o processamento paralelo dos tokens
         Process(target=worker, args=(task_queue, done_queue)).start()
-        task_queue.put('STOP')
 
     # Load dictionary
     dic = corpora.Dictionary()
     if outfile is not None:
-        dic.load(outfile)
+        if os.path.exists(outfile):
+            dic.load(outfile)
 
     max_size = lbstatus.max_size
     # Merge results with this dictionary
@@ -191,14 +196,25 @@ def process_tokens(params):
                     if re.match('A[0-9]', argument_name) is not None:
                         log.debug("String match for argument_name = %s", argument_name)
                         for elm in argument.argument_value:
+                            # Find element and update frequency
                             stem = stemmer.stem(elm)
                             dic_elm = dictionary.Dictionary(
                                 token=elm,
                                 stem=stem
                             )
-                            document = dic_elm.create_dictionary()
-                            if document is None:
-                                log.debug("Token repetido: %s", elm)
+                            id_doc = dic_elm.get_id_doc()
+                            if id_doc is None:
+                                dic_elm.frequency = 1
+                                document = dic_elm.create_dictionary()
+                            else:
+                                # Try to update frequency
+                                try:
+                                    dic_elm.frequency += 1
+                                except AttributeError:
+                                    # No frequency yet
+                                    dic_elm.frequency = 1
+                                document = dic_elm.update(id_doc)
+                                log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
 
                         tokens = tokens + argument.argument_value
 
@@ -214,23 +230,3 @@ def worker(inp, output):
     for func in iter(inp.get, 'STOP'):
         result = process_tokens(func)
         output.put(result)
-
-
-def update_frequency(dic, dicfile):
-    try:
-        assert isinstance(dic, DictionaryBase)
-    except AssertionError as e:
-        log.error("You have to supply a dictionary instance\n%s", e)
-        return
-
-    # Check if file exists
-    if not os.path.exists(dicfile):
-        log.error("You have to generate a dictionary file first")
-        return
-
-    # Load dictionary from file
-    corp = corpora.Dictionary()
-    corp.load(dicfile)
-
-    # Apply transformation to calculate frequency
-    tfidf = models.TfidfModel(corp)
