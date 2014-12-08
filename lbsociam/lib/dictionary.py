@@ -18,6 +18,37 @@ from multiprocessing import Process, Queue
 log = logging.getLogger()
 
 
+def valid_word(word):
+    """
+    Apply processing to word and return valid word
+    :return: True if it is valid or False if it is not
+        Ĩf a list is supplied, return a list of valid tokens or empty list
+    """
+    # Processing modules
+    stopwords = set(nltk.corpus.stopwords.words('portuguese'))
+    stopwords.update(['http', 'pro', 'https', 't.', 'co'])
+    re.LOCALE = 'pt_BR.UTF-8'
+
+    # Validate list or single word
+    if type(word) == list:
+        saida = list()
+
+        for text in word:
+            if text not in stopwords and \
+                    re.match(r'\w+', text) and \
+                    len(text) > 1:
+                saida.append(text)
+
+        return saida
+
+    if word not in stopwords and \
+            re.match(r'\w+', word) and \
+            len(word) > 1:
+        return True
+    else:
+        return False
+
+
 def status_to_document(status_list):
     """
     Receive a status object and convert tokens to document
@@ -57,6 +88,10 @@ def create_from_status(lbstatus, outfile=None, offset=0):
         log.error("You have to supply a status instance\n%s", e)
         return
 
+    # Stopwords and punctuations removal
+    stopwords = nltk.corpus.stopwords.words('portuguese')
+    re.LOCALE = 'pt_BR.UTF-8'
+
     # Now return all the documents collection and parse it
     orderby = OrderBy(asc=['id_doc'])
     select = ['id_doc', 'arg_structures']
@@ -93,7 +128,10 @@ def create_from_status(lbstatus, outfile=None, offset=0):
 
                     if re.match('A[0-9]', argument_name) is not None:
                         log.debug("String match for argument_name = %s", argument_name)
-                        tokens = tokens + argument['argument_value']
+                        saida = valid_word(argument['argument_value'])
+
+                        # Add only valid tokens
+                        tokens += saida
 
             dic.add_documents([tokens])
         else:
@@ -196,27 +234,32 @@ def process_tokens(params):
                     if re.match('A[0-9]', argument_name) is not None:
                         log.debug("String match for argument_name = %s", argument_name)
                         for elm in argument.argument_value:
-                            # Find element and update frequency
-                            stem = stemmer.stem(elm)
-                            dic_elm = dictionary.Dictionary(
-                                token=elm,
-                                stem=stem
-                            )
-                            id_doc = dic_elm.get_id_doc()
-                            if id_doc is None:
-                                dic_elm.frequency = 1
-                                document = dic_elm.create_dictionary()
-                            else:
-                                # Try to update frequency
-                                try:
-                                    dic_elm.frequency += 1
-                                except AttributeError:
-                                    # No frequency yet
-                                    dic_elm.frequency = 1
-                                document = dic_elm.update(id_doc)
-                                log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
 
-                        tokens = tokens + argument.argument_value
+                            # Check valid tokens
+                            if valid_word(elm):
+                                # Find element and update frequency
+                                stem = stemmer.stem(elm)
+                                dic_elm = dictionary.Dictionary(
+                                    token=elm,
+                                    stem=stem
+                                )
+                                id_doc = dic_elm.get_id_doc()
+                                if id_doc is None:
+                                    dic_elm.frequency = 1
+                                    document = dic_elm.create_dictionary()
+                                else:
+                                    # Try to update frequency
+                                    try:
+                                        dic_elm.frequency += 1
+                                    except AttributeError:
+                                        # No frequency yet
+                                        dic_elm.frequency = 1
+                                    document = dic_elm.update(id_doc)
+                                    log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
+
+                                tokens.append(elm)
+                            else:
+                                log.debug("Invalid tokens in %s", elm)
 
             dic.add_documents([tokens])
     else:

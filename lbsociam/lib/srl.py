@@ -6,6 +6,7 @@ import nlpnet
 import logging
 import nltk
 import re
+from . import dictionary
 
 log = logging.getLogger()
 
@@ -20,8 +21,6 @@ def srl_tokenize(text):
             'arg_structures': arg_structures
         }
     """
-    stopwords = nltk.corpus.stopwords.words('portuguese')
-    re.LOCALE = 'pt_BR.UTF-8'
     text = text.lower()
     tagger = nlpnet.SRLTagger()
     sent = tagger.tag(text)
@@ -31,8 +30,7 @@ def srl_tokenize(text):
     for elm in sent:
         # Remove stopwords and punctuations
         for i in range(0, len(elm.tokens)):
-            if elm.tokens[i] not in stopwords and \
-                    re.match(r'\w+', elm.tokens[i]):
+            if dictionary.valid_word(elm.tokens[i]):
                 tokens.append(elm.tokens[i])
 
         # Cria elementos de SRL
