@@ -121,6 +121,7 @@ def create_from_status(lbstatus, outfile=None, offset=0):
         if result.get('arg_structures') is not None:
             # Search for the events as argument
             tokens = list()
+            tokens.append(result.get('search_term'))
             for structure in result['arg_structures']:
                 for argument in structure['argument']:
                     argument_name = argument['argument_name']
@@ -223,7 +224,7 @@ def process_tokens(params):
 
     result = lbstatus.get_document(params['status_id'])
 
-    if getattr(result, 'tokens', default=None) is not None:
+    if getattr(result, 'tokens', None) is not None:
             # Search for the events as argument
             tokens = list()
             for structure in result.arg_structures:
@@ -268,7 +269,33 @@ def process_tokens(params):
 
             dic.add_documents([tokens])
     else:
-        log.error("Tokens não encontrados para o documento %s", result['_metadata']['id_doc'])
+        log.error("Tokens não encontrados para o documento %s", params['status_id'])
+
+    # Add search term on dictionary
+    elm = result.search_term
+    stem = stemmer.stem(elm)
+    dic_elm = dictionary.Dictionary(
+        token=elm,
+        stem=stem
+    )
+    id_doc = dic_elm.get_id_doc()
+    if id_doc is None:
+        dic_elm.frequency = 1
+        dic_elm.status_list = [params['status_id']]
+        document = dic_elm.create_dictionary()
+    else:
+        # Try to update frequency
+        try:
+            if params['status_id'] not in dic_elm.status_list:
+                dic_elm.frequency += 1
+                #dic_elm.status_list = [id_doc]
+                dic_elm.status_list.append(params['status_id'])
+        except AttributeError:
+            # No frequency yet
+            dic_elm.frequency = 1
+            dic_elm.status_list = [params['status_id']]
+        document = dic_elm.update(id_doc)
+        log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
 
     return dic
 
