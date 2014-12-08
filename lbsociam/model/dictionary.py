@@ -82,6 +82,16 @@ class DictionaryBase(LBSociam):
             required=False
         ))
 
+        status_list = Field(**dict(
+            name='status_list',
+            description='id_doc from the status where the token was found',
+            alias='status_list',
+            datatype='Integer',
+            indices=['Ordenado'],
+            multivalued=True,
+            required=False
+        ))
+
         base_metadata = BaseMetadata(**dict(
             name='dictionary',
             description='Terms dictionary from social networks'
@@ -91,6 +101,7 @@ class DictionaryBase(LBSociam):
         content_list.append(token)
         content_list.append(stem)
         content_list.append(frequency)
+        content_list.append(status_list)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -310,6 +321,7 @@ class Dictionary(dictionary_base.metaclass):
         if len(results['results']) > 0:
             response = results['results'][0]['_metadata']['id_doc']
             self.frequency = results['results'][0]['frequency']
+            self.status_list = results['results'][0]['status_list']
         else:
             response = None
 

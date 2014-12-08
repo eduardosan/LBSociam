@@ -246,14 +246,19 @@ def process_tokens(params):
                                 id_doc = dic_elm.get_id_doc()
                                 if id_doc is None:
                                     dic_elm.frequency = 1
+                                    dic_elm.status_list = [params['status_id']]
                                     document = dic_elm.create_dictionary()
                                 else:
                                     # Try to update frequency
                                     try:
-                                        dic_elm.frequency += 1
+                                        if params['status_id'] not in dic_elm.status_list:
+                                            dic_elm.frequency += 1
+                                            #dic_elm.status_list = [id_doc]
+                                            dic_elm.status_list.append(params['status_id'])
                                     except AttributeError:
                                         # No frequency yet
                                         dic_elm.frequency = 1
+                                        dic_elm.status_list = [params['status_id']]
                                     document = dic_elm.update(id_doc)
                                     log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
 
