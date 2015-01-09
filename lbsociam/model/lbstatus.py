@@ -362,6 +362,74 @@ class StatusBase(LBSociam):
 
         return response
 
+    def get_events_tokens(self):
+        """
+        Get events corpus
+        :return: Events corpus
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        select = ['events_tokens']
+        search = Search(
+            select=select,
+            limit=None,
+            order_by=orderby,
+            offset=0
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+        saida = list()
+
+        # Cria uma lista de resultados como ID
+        if collection.get('results') is None:
+            return None
+
+        for results in collection['results']:
+            if results is not None:
+                saida.append(results['events_tokens'])
+
+        return saida
+
+    def get_text(self):
+        """
+        Get events corpus
+        :return: Events corpus
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        select = ['text']
+        search = Search(
+            select=select,
+            limit=None,
+            order_by=orderby,
+            offset=0
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+        saida = list()
+
+        # Cria uma lista de resultados como ID
+        if collection.get('results') is None:
+            return None
+
+        for results in collection['results']:
+            if results is not None:
+                saida.append(results['text'])
+
+        return saida
+
 status_base = StatusBase()
 StatusClass = status_base.metaclass
 ArgStructures = status_base.arg_structures
