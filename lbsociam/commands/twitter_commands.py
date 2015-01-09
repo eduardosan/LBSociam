@@ -14,7 +14,7 @@ from lbsociam.model import lbstatus
 from liblightbase.lbbase.struct import Base
 from liblightbase.lbsearch.search import *
 from liblightbase.lbutils import conv
-from ..lib import srl
+from ..lib import srl, dictionary
 from multiprocessing import Queue, Process
 
 log = logging.getLogger()
@@ -79,6 +79,14 @@ class TwitterCommands(command.Command):
         action='store',
         dest='init',
         help='Starting ID on processing',
+        default=None
+    )
+
+    parser.add_option(
+        '-k', '--tokenize',
+        action='store',
+        dest='tokenize',
+        help='Force tokenizer to work on information retrieval',
         default=None
     )
 
@@ -206,6 +214,7 @@ class TwitterCommands(command.Command):
         # Store every twitter on LB database
         for elm in saida:
             status_json = self.lbt.status_to_json([elm])
+
             status = lbstatus.Status(
                 origin='twitter',
                 inclusion_date=datetime.datetime.now(),
@@ -215,9 +224,29 @@ class TwitterCommands(command.Command):
                 source=status_json,
                 status_base=self.status_base
             )
+
             retorno = status.create_status()
+
             if retorno is None:
                 log.error("Error inserting status %s on Base" % elm.text)
+            elif self.options.tokenize is not None:
+                status_dict = conv.document2dict(self.status_base.lbbase, status)
+                # SRL tokenize
+                tokenized = srl.srl_tokenize(status_dict['text'])
+                if tokenized.get('arg_structures') is not None:
+                    status_dict['arg_structures'] = tokenized.get('arg_structures')
+                if tokenized.get('tokens') is not None:
+                    status_dict['tokens'] = tokenized.get('tokens')
+
+                # Update status with new tokenized structure
+                self.status_base.documentrest.update(retorno, json.dumps(status_dict))
+
+                # Process tokens if selected
+                params = {
+                    'status_id': retorno
+                }
+                result = dictionary.process_tokens(params)
+                log.debug("Corpus da tokenização calculado %s", result)
 
         return
 
@@ -320,5 +349,12 @@ class TwitterCommands(command.Command):
             exctype, value = sys.exc_info()[:2]
             log.error("Error updating document id = %d\n%s" % (status_dict['_metadata']['id_doc'], value))
             return False
+
+        # Process tokens
+        params = {
+            'status_id': status_dict['_metadata']['id_doc']
+        }
+        result = dictionary.process_tokens(params)
+        log.debug("Corpus da tokenização calculado %s", result)
 
         return True

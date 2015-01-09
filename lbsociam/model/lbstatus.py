@@ -188,6 +188,16 @@ class StatusBase(LBSociam):
             content=arg_content_list
         )
 
+        events_tokens = Field(**dict(
+            name='events_tokens',
+            alias='argument_name',
+            description='Identified Events tokens',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=True,
+            required=False
+        ))
+
         base_metadata = BaseMetadata(**dict(
             name='status',
             description='Status from social networks',
@@ -209,6 +219,7 @@ class StatusBase(LBSociam):
         content_list.append(arg_structures)
         content_list.append(origin)
         content_list.append(source)
+        content_list.append(events_tokens)
 
         lbbase = Base(
             metadata=base_metadata,

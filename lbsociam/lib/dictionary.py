@@ -8,12 +8,15 @@ import logging
 import requests
 import nltk
 import re
+import json
 from lbsociam.model.lbstatus import StatusBase
 from lbsociam.model.dictionary import DictionaryBase
 from liblightbase.lbsearch.search import *
 from lbsociam.model import dictionary
 from gensim import corpora, models
 from multiprocessing import Process, Queue
+from liblightbase.lbutils import conv
+from requests.exceptions import HTTPError
 
 log = logging.getLogger()
 
@@ -197,10 +200,12 @@ def insert_from_status(lbstatus, outfile=None):
     for i in range(len(id_status_list)):
         dic2 = done_queue.get()
         dic.merge_with(dic2)
-        # Serialize if it grows bigger than the amount of size
-        if sys.getsizeof(dic, 0) >= max_size:
-            log.info("Serializing dict as it reached max size %s", max_size)
-            dic.save(outfile)
+        log.debug("111111111111111111111: Novo dicionário %s", dic)
+        if outfile is not None:
+            # Serialize if it grows bigger than the amount of size
+            if sys.getsizeof(dic, 0) >= max_size:
+                log.info("Serializing dict as it reached max size %s", max_size)
+                dic.save(outfile)
 
     if outfile is not None:
         dic.save(outfile)
@@ -214,8 +219,8 @@ def insert_from_status(lbstatus, outfile=None):
 
 def process_tokens(params):
     """
-    Processa o conjunto de documentos
-    :return:
+    Process the documents
+    :return: Dictionary object
     """
     lbstatus = StatusBase()
     # Now return all the documents collection and parse it
@@ -267,6 +272,14 @@ def process_tokens(params):
                             else:
                                 log.debug("Invalid tokens in %s", elm)
 
+            # Add tokens back to status object
+            result.events_tokens = tokens
+            status_dict = conv.document2dict(lbstatus.lbbase, result)
+            try:
+                retorno = lbstatus.documentrest.update(params['status_id'], json.dumps(status_dict))
+            except HTTPError as e:
+                log.error("Error updating document id = %d\n%s" % (params['status_id'], e.message))
+
             dic.add_documents([tokens])
     else:
         log.error("Tokens não encontrados para o documento %s", params['status_id'])
@@ -305,3 +318,62 @@ def worker(inp, output):
     for func in iter(inp.get, 'STOP'):
         result = process_tokens(func)
         output.put(result)
+
+
+def create_file(lbstatus, outfile, offset=0):
+    try:
+        assert isinstance(lbstatus, StatusBase)
+    except AssertionError as e:
+        log.error("You have to supply a status instance\n%s", e)
+        return
+
+    processes = int(lbstatus.processes)
+    # 100 times the maximum number of processes, for some reason
+    limit = processes * 1000
+
+    # Now return all the documents collection and parse it
+    orderby = OrderBy(asc=['id_doc'])
+    select = ['id_doc', 'arg_structures']
+    search = Search(
+        select=select,
+        limit=10,
+        offset=offset,
+        order_by=orderby
+    )
+    url = lbstatus.documentrest.rest_url
+    url += "/" + lbstatus.lbbase._metadata.name + "/doc"
+    vars = {
+        '$$': search._asjson()
+    }
+
+    # Envia requisição para o REST
+    response = requests.get(url, params=vars)
+    collection = response.json()
+    dic = corpora.Dictionary()
+
+    if outfile is not None:
+        if os.path.exists(outfile):
+            dic.load(outfile)
+
+    #print(collection)
+    for i in range(0, limit):
+        try:
+            result = collection['results'][i]
+        except IndexError:
+            break
+        # Adiciona documentos ao dicion
+
+
+    # Save dict for now
+    dic.save(outfile)
+
+    if collection['result_count'] > (offset+10):
+        # Call the same function again increasing offset
+        create_from_status(
+            lbstatus=lbstatus,
+            outfile=outfile,
+            offset=(offset+10)
+        )
+    else:
+        if outfile is not None:
+            dic.save(outfile)
