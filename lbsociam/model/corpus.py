@@ -46,3 +46,11 @@ class EventsCorpus(object):
         :return: Documents as texts
         """
         return status_base.get_text()
+
+    @property
+    def corpus(self):
+        """
+        Get corpus
+        :return: Formatted corpus
+        """
+        return [self.dic.doc2bow(text) for text in self.events_tokens]
