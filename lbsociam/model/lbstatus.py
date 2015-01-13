@@ -190,11 +190,41 @@ class StatusBase(LBSociam):
 
         events_tokens = Field(**dict(
             name='events_tokens',
-            alias='argument_name',
+            alias='events_tokens',
             description='Identified Events tokens',
             datatype='Text',
             indices=['Textual'],
             multivalued=True,
+            required=False
+        ))
+
+        selected_category = Field(**dict(
+            name='selected_category',
+            alias='selected_category',
+            description='Manually selected category',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=False,
+            required=False
+        ))
+
+        positives = Field(**dict(
+            name='positives',
+            alias='positives',
+            description='Positive crime identification',
+            datatype='Integer',
+            indices=['Ordenado'],
+            multivalued=False,
+            required=False
+        ))
+
+        negatives = Field(**dict(
+            name='negatives',
+            alias='negatives',
+            description='False positive on crime identification',
+            datatype='Integer',
+            indices=['Ordenado'],
+            multivalued=False,
             required=False
         ))
 
@@ -220,6 +250,9 @@ class StatusBase(LBSociam):
         content_list.append(origin)
         content_list.append(source)
         content_list.append(events_tokens)
+        content_list.append(selected_category)
+        content_list.append(positives)
+        content_list.append(negatives)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -429,6 +462,28 @@ class StatusBase(LBSociam):
                 saida.append(results['text'])
 
         return saida
+
+    def get_status(self, offset=0, limit=100):
+        """
+        Build a lis with all document ID's
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        search = Search(
+            limit=limit,
+            order_by=orderby,
+            offset=offset
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+
+        return collection
 
 status_base = StatusBase()
 StatusClass = status_base.metaclass
