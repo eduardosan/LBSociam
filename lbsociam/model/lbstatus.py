@@ -463,7 +463,7 @@ class StatusBase(LBSociam):
 
         return saida
 
-    def get_status(self, offset=0, limit=100):
+    def get_status(self, offset=0, limit=100, literal=''):
         """
         Build a lis with all document ID's
         """
@@ -471,7 +471,8 @@ class StatusBase(LBSociam):
         search = Search(
             limit=limit,
             order_by=orderby,
-            offset=offset
+            offset=offset,
+            literal=literal
         )
         url = self.documentrest.rest_url
         url += "/" + self.lbbase._metadata.name + "/doc"
