@@ -42,6 +42,7 @@ setup(name='LBSociam',
         lbtwitter = lbsociam.commands:TwitterCommands
         crime = lbsociam.commands:CrimeCommands
         dictionary = lbsociam.commands:DictionaryCommands
+        analytics = lbsociam.commands:AnalyticsCommands
       """,
       )
 

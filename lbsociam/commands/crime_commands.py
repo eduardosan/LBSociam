@@ -57,8 +57,6 @@ class CrimeCommands(command.Command):
                       help='Value to be used in update'
     )
 
-
-
     def __init__(self, name):
         """
         Constructor method
