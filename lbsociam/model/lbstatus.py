@@ -229,7 +229,7 @@ class StatusBase(LBSociam):
         ))
 
         base_metadata = BaseMetadata(**dict(
-            name='status',
+            name=self.status_base,
             description='Status from social networks',
             password='123456',
             idx_exp=False,

@@ -93,7 +93,7 @@ class DictionaryBase(LBSociam):
         ))
 
         base_metadata = BaseMetadata(**dict(
-            name='dictionary',
+            name=self.dictionary_base,
             description='Terms dictionary from social networks'
         ))
 

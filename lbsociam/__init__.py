@@ -28,3 +28,5 @@ class LBSociam(object):
             self.lbsociam_data_dir = lbsociam_data_dir
         self.processes = config.get('lbsociam', 'processes')
         self.max_size = config.get('lbsociam', 'max_size')
+        self.status_base = config.get('lbsociam', 'status_base')
+        self.dictionary_base = config.get('lbsociam', 'dictionary_base')

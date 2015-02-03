@@ -64,11 +64,20 @@ class Twitter(LBSociam):
         status_json = self.status_to_json(status)
         return json.loads(status_json)
 
-    def search(self, count=15):
+    def search(self, count=15, include_rt=False):
         """
         Search public timeline
         """
         status_list = self.api.GetSearch(geocode=None, term=self.term,
           since_id=None, lang='pt', count=count)
 
-        return status_list
+        saida = []
+        if include_rt is True:
+            return status_list
+        else:
+            # Return only status without RT
+            for status in status_list:
+                if status.GetRetweeted_status() is None:
+                    saida.append(status)
+
+        return saida
