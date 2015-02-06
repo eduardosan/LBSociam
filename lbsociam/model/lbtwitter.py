@@ -69,15 +69,15 @@ class Twitter(LBSociam):
         Search public timeline
         """
         status_list = self.api.GetSearch(geocode=None, term=self.term,
-          since_id=None, lang='pt', count=count)
+          since_id=None, lang='pt', count=count, result_type='recent')
 
         saida = []
         if include_rt is True:
             return status_list
         else:
-            # Return only status without RT
+            # Return only status without RT and not replies
             for status in status_list:
-                if status.GetRetweeted_status() is None:
+                if status.GetRetweeted_status() is None and status.GetInReplyToStatusId() is None:
                     saida.append(status)
 
         return saida

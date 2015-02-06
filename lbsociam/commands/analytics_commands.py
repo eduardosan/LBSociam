@@ -151,8 +151,47 @@ class AnalyticsCommands(command.Command):
 
         # Process responses
         log.debug("Processing responses")
-        for i in range(processes):
-            result = done_queue.get()
+        for i in range(len(id_document_list)):
+            status_dict = done_queue.get()
+
+            # Get actual analytics
+            entry_dict = self.analytics_base.get_document(self.id_doc)
+
+            # Manually add id_doc
+            entry_dict['_metadata'] = dict()
+            entry_dict['_metadata']['id_doc'] = self.id_doc
+
+            if status_dict is not None:
+                # Now update total
+                if entry_dict.get('total_crimes') is None:
+                    entry_dict['total_crimes'] = 0
+
+                total_crimes = int(entry_dict['total_crimes']) + 1
+                entry_dict['total_crimes'] = total_crimes
+
+                if entry_dict.get('status_crimes') is None:
+                    entry_dict['status_crimes'] = []
+
+                entry_dict['status_crimes'].append({
+                    'status_id_doc': status_dict['_metadata']['id_doc'],
+                    'status_positives': status_dict.get('positives'),
+                    'status_negatives': status_dict.get('negatives')
+                })
+
+            # Now update total
+            if entry_dict.get('total_status') is None:
+                entry_dict['total_status'] = 0
+            total_status = int(entry_dict['total_status']) + 1
+            entry_dict['total_status'] = total_status
+
+            try:
+                result = self.analytics_base.update_document(self.id_doc, entry_dict)
+            except HTTPError as e:
+                log.error("Error updating status\n%s", e.message)
+
+            if result is None:
+                log.error("Error updating total status positives and negatives")
+
             log.info("Processing finished %s", result)
 
         # Tell child processes to stop
@@ -191,44 +230,7 @@ class AnalyticsCommands(command.Command):
             else:
                 update = True
 
-        # Get actual analytics
-        entry_dict = self.analytics_base.get_document(self.id_doc)
-
-        # Manually add id_doc
-        entry_dict['_metadata'] = dict()
-        entry_dict['_metadata']['id_doc'] = self.id_doc
-
         if update:
-            # Now update total
-            if entry_dict.get('total_crimes') is None:
-                entry_dict['total_crimes'] = 0
-
-            total_crimes = int(entry_dict['total_crimes']) + 1
-            entry_dict['total_crimes'] = total_crimes
-
-            if entry_dict.get('status_crimes') is None:
-                entry_dict['status_crimes'] = []
-
-            entry_dict['status_crimes'].append({
-                'status_id_doc': status_id_doc,
-                'status_positives': status_dict.get('positives'),
-                'status_negatives': status_dict.get('negatives')
-            })
-
-        # Now update total
-        if entry_dict.get('total_status') is None:
-            entry_dict['total_status'] = 0
-        total_status = int(entry_dict['total_status']) + 1
-        entry_dict['total_status'] = total_status
-
-        try:
-            result = self.analytics_base.update_document(self.id_doc, entry_dict)
-        except HTTPError as e:
-            log.error("Error updating status\n%s", e.message)
-
-        if result is None:
-            log.error("Error updating total status positives and negatives")
-
-            return False
-
-        return True
+            return status_dict
+        else:
+            return None
