@@ -81,3 +81,26 @@ class Twitter(LBSociam):
                     saida.append(status)
 
         return saida
+
+    def search_user(self,
+                    screen_name,
+                    include_rts=False,
+                    count=15,
+                    exclude_replies=True):
+        """
+        Search specific user timeline
+
+        :param screen_name: user screen_name
+        :param include_rts: Whether we include RT's in results or not
+        :param count: max 200 results on user timeline
+        :param exclude_replies: Whether we should exclude replies or not
+        :return: Status list
+        """
+        status_list = self.api.GetUserTimeline(
+            screen_name=screen_name,
+            count=count,
+            include_rts=include_rts,
+            exclude_replies=exclude_replies
+            )
+
+        return status_list

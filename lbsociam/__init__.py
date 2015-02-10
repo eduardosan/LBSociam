@@ -30,3 +30,4 @@ class LBSociam(object):
         self.max_size = config.get('lbsociam', 'max_size')
         self.status_base = config.get('lbsociam', 'status_base')
         self.dictionary_base = config.get('lbsociam', 'dictionary_base')
+        self.gmaps_api_key = config.get('maps', 'api_key')

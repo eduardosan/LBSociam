@@ -14,7 +14,7 @@ from lbsociam.model import lbstatus
 from liblightbase.lbbase.struct import Base
 from liblightbase.lbsearch.search import *
 from liblightbase.lbutils import conv
-from ..lib import srl, dictionary
+from ..lib import srl, dictionary, location
 from multiprocessing import Queue, Process
 
 log = logging.getLogger()
@@ -238,6 +238,9 @@ class TwitterCommands(command.Command):
                 if tokenized.get('tokens') is not None:
                     status_dict['tokens'] = tokenized.get('tokens')
 
+                # Now try to find location
+                status_dict = location.get_location(status_dict)
+
                 # Update status with new tokenized structure
                 self.status_base.documentrest.update(retorno, json.dumps(status_dict))
 
@@ -325,6 +328,9 @@ class TwitterCommands(command.Command):
             status_dict['arg_structures'] = tokenized.get('arg_structures')
         if tokenized.get('tokens') is not None:
             status_dict['tokens'] = tokenized.get('tokens')
+
+        # Now try to find location
+        status_dict = location.get_location(status_dict)
 
         # FIXME: Isso aqui precisa ser resolvido na liblightbase
         # Put status from base in LB Status Object

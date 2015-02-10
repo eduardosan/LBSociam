@@ -228,6 +228,80 @@ class StatusBase(LBSociam):
             required=False
         ))
 
+        location_list = Content()
+
+        id_location = Field(**dict(
+            name='id_location',
+            alias='ID Location',
+            description='Location Identification',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        location_list.append(id_location)
+
+        latitude = Field(**dict(
+            name='latitude',
+            alias='Latitude',
+            description='Latitude',
+            datatype='Decimal',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        location_list.append(latitude)
+
+        longitude = Field(**dict(
+            name='longitude',
+            alias='Longitude',
+            description='Longitude',
+            datatype='Decimal',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        location_list.append(longitude)
+
+        city = Field(**dict(
+            name='city',
+            alias='City',
+            description='City identified',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        location_list.append(city)
+
+        loc_origin = Field(**dict(
+            name='loc_origin',
+            alias='Location Origin',
+            description='Origin from location identificaton',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        location_list.append(loc_origin)
+
+        location_metadata = GroupMetadata(**dict(
+            name='location',
+            alias='location',
+            description='Status origin',
+            multivalued=False
+        ))
+
+        location = Group(
+            metadata=location_metadata,
+            content=location_list
+        )
+
         base_metadata = BaseMetadata(**dict(
             name=self.status_base,
             description='Status from social networks',
@@ -253,6 +327,7 @@ class StatusBase(LBSociam):
         content_list.append(selected_category)
         content_list.append(positives)
         content_list.append(negatives)
+        content_list.append(location)
 
         lbbase = Base(
             metadata=base_metadata,

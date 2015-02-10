@@ -13,12 +13,13 @@ requires = [
     'rdflib',
     'oauthlib',
     'PasteScript',
-    'gensim'
+    'gensim',
+    'googlemaps'
     ]
 
 
 setup(name='LBSociam',
-      version='0.3',
+      version='0.4',
       description='LBSociam',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[

@@ -19,6 +19,12 @@ consumer_secret =
 access_token =
 access_secret =
 
+[lbgenerator]
+rest_url = http://edusantos.no-ip.biz/api
+
+[maps]
+api_key =
+
 # Begin logging configuration
 
 [loggers]
