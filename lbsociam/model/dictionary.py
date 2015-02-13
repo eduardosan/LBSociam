@@ -238,6 +238,26 @@ class DictionaryBase(LBSociam):
 
         return saida
 
+    def get_token_frequency(self, limit=None):
+        orderby = OrderBy(desc=['frequency'])
+        select = ['token', 'frequency']
+        search = Search(
+            select=select,
+            limit=limit,
+            offset=0,
+            order_by=orderby
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+
+        return collection
 
 dictionary_base = DictionaryBase()
 

@@ -565,8 +565,18 @@ class StatusBase(LBSociam):
         """
         Get all status with locations
         """
-        orderby = OrderBy(asc=['id_doc'])
-        select = ["id_doc", "location", "positives", "negatives"]
+        orderby = OrderBy(asc=['positives'])
+        select = [
+            "id_doc",
+            "location",
+            "positives",
+            "negatives",
+            "source",
+            "inclusion_datetime",
+            "text",
+            "origin"
+        ]
+
         search = Search(
             select=select,
             limit=None,
