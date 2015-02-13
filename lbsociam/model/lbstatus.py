@@ -561,6 +561,30 @@ class StatusBase(LBSociam):
 
         return collection
 
+    def get_locations(self):
+        """
+        Get all status with locations
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        select = ["id_doc", "location", "positives", "negatives"]
+        search = Search(
+            select=select,
+            limit=None,
+            order_by=orderby,
+            offset=0
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+
+        return collection
+
 status_base = StatusBase()
 StatusClass = status_base.metaclass
 ArgStructures = status_base.arg_structures
