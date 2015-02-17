@@ -7,20 +7,23 @@ import json
 import re
 from lbsociam.model import gmaps
 from googlemaps.exceptions import ApiError, TransportError, Timeout
+from lbsociam.model import location as loc
 
 log = logging.getLogger()
 
 
-def get_location(status):
+def get_location(status, cache=True):
     """
     Get location for status
     :param status: status dict
+    :param cache: Use cache to store and retrieve results
     :return: status with location
     """
     log.debug("LOCATION: processing id_doc = %s", status['_metadata']['id_doc'])
     source = json.loads(status['source'])
     source = source[0]
     status['location'] = dict()
+    location_base = loc.LocationBase()
 
     geo = source.get('_geo')
     if geo is not None:
@@ -48,7 +51,18 @@ def get_location(status):
 
     location = source.get('_location')
     if location is not None:
-        result = maps_search(location)
+        # Try to use cache first
+        if cache:
+            result = location_base.get_location(location)
+            if result is None:
+                result = maps_search(location)
+            else:
+                # Just return stored values
+                status['location'] = result
+                return status
+        else:
+            result = maps_search(location)
+            
         if result is not None:
             status['location']['latitude'] = result['latitude']
             status['location']['longitude'] = result['longitude']
@@ -88,7 +102,18 @@ def get_location(status):
 
         location = user.get('_location')
         if location is not None:
-            result = maps_search(location)
+            # Try to use cache first
+            if cache:
+                result = location_base.get_location(location)
+                if result is None:
+                    result = maps_search(location)
+                else:
+                    # Just return stored values
+                    status['location'] = result
+                    return status
+            else:
+                result = maps_search(location)
+
             if result is not None:
                 status['location']['latitude'] = result['latitude']
                 status['location']['longitude'] = result['longitude']
@@ -107,7 +132,18 @@ def get_location(status):
 
             if re.match('.*-LOC', argument_name) is not None:
                 log.debug("LOCATION: string match for argument_name = %s", argument_name)
-                result = maps_search(argument['argument_value'])
+                # Try to use cache first
+                if cache:
+                    result = location_base.get_location(location)
+                    if result is None:
+                        result = maps_search(location)
+                    else:
+                        # Just return stored values
+                        status['location'] = result
+                        return status
+                else:
+                    result = maps_search(argument['argument_value'])
+
                 if result is not None:
                     status['location']['latitude'] = result['latitude']
                     status['location']['longitude'] = result['longitude']
@@ -118,7 +154,7 @@ def get_location(status):
 
                     return status
 
-    # If I', here, it was not possible to find the location
+    # If I'm here, it was not possible to find the location
     log.error("Location not found for status id = %s", status['_metadata']['id_doc'])
     del status['location']
 

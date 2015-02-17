@@ -348,7 +348,10 @@ class TwitterCommands(command.Command):
         #print(status.tokens)
         #print(status.arg_structures)
         try:
-            self.status_base.documentrest.update(status_dict['_metadata']['id_doc'], json.dumps(status_dict))
+            self.status_base.documentrest.update(
+                status_dict['_metadata']['id_doc'],
+                json.dumps(status_dict)
+            )
             # FIXME: Esse método só vai funcionar quando a liblightbase estiver ok
             #status.update(id_doc=result._metadata.id_doc)
         except:

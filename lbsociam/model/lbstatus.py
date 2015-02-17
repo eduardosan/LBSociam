@@ -731,7 +731,7 @@ class Status(StatusClass):
         return result
 
     def update(self, id_doc):
-        #print(self.arg_structures)
+        # print(self.arg_structures)
         document = self.status_to_json()
-        #print(document)
+        # print(document)
         return self.status_base.documentrest.update(id=id_doc, document=document)
