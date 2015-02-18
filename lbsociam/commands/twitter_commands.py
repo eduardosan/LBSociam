@@ -96,11 +96,11 @@ class TwitterCommands(command.Command):
         """
         super(TwitterCommands, self).__init__(name)
 
-        #self.lbs = lbsociam.LBSociam()
-        #self.baserest = lbrest.BaseREST(rest_url=self.lbs.lbgenerator_rest_url, response_object=True)
+        # self.lbs = lbsociam.LBSociam()
+        # self.baserest = lbrest.BaseREST(rest_url=self.lbs.lbgenerator_rest_url, response_object=True)
         self.lbt = lbtwitter.Twitter(debug=False, term='crime')
         self.status_base = lbstatus.StatusBase()
-        #self.tw_status = self.lbt.search()
+        # self.tw_status = self.lbt.search()
 
     def command(self):
         """
@@ -200,58 +200,21 @@ class TwitterCommands(command.Command):
         """
         Store tweets on LB database
         """
-        saida = list()
+        # saida = list()
         if type(self.options.terms) != list:
             self.lbt.term = self.options.terms
             status = self.lbt.search(count=self.options.number)
-            saida = status
+            result = self.lbt.store_twitter(status_list=status, tokenize=self.options.tokenize)
+            # saida = status
         else:
             for elm in self.options.terms:
                 self.lbt.term = elm
                 status = self.lbt.search(count=self.options.number)
-                saida = saida + status
+                # Store every twitter on LB database
+                result = self.lbt.store_twitter(status_list=status, tokenize=self.options.tokenize)
+                # saida = saida + status
 
-        # Store every twitter on LB database
-        for elm in saida:
-            status_json = self.lbt.status_to_json([elm])
-
-            status = lbstatus.Status(
-                origin='twitter',
-                inclusion_date=datetime.datetime.now(),
-                inclusion_datetime=datetime.datetime.now(),
-                search_term=self.options.terms,
-                text=elm.text,
-                source=status_json,
-                status_base=self.status_base
-            )
-
-            retorno = status.create_status()
-
-            if retorno is None:
-                log.error("Error inserting status %s on Base" % elm.text)
-            elif self.options.tokenize is not None:
-                status_dict = conv.document2dict(self.status_base.lbbase, status)
-                # SRL tokenize
-                tokenized = srl.srl_tokenize(status_dict['text'])
-                if tokenized.get('arg_structures') is not None:
-                    status_dict['arg_structures'] = tokenized.get('arg_structures')
-                if tokenized.get('tokens') is not None:
-                    status_dict['tokens'] = tokenized.get('tokens')
-
-                # Now try to find location
-                status_dict = location.get_location(status_dict)
-
-                # Update status with new tokenized structure
-                self.status_base.documentrest.update(retorno, json.dumps(status_dict))
-
-                # Process tokens if selected
-                params = {
-                    'status_id': retorno
-                }
-                result = dictionary.process_tokens(params)
-                log.debug("Corpus da tokenização calculado %s", result)
-
-        return
+        return result
 
     def srl_twitter(self, offset=0):
         """
@@ -311,59 +274,9 @@ class TwitterCommands(command.Command):
     def process_tokens(self, id_doc):
         """
         Process tokens
-        :param results: A result dict to be processed and inserted back
+        :param id_doc: Document id_doc to be processed
         :return: True or False
         """
-        result = self.status_base.get_document(id_doc)
+        result = self.status_base.process_tokens(id_doc)
 
-        # JSON
-        status_dict = conv.document2dict(self.status_base.lbbase, result)
-        # Manually add id_doc
-        status_dict['_metadata'] = dict()
-        status_dict['_metadata']['id_doc'] = id_doc
-
-        # SRL tokenize
-        tokenized = srl.srl_tokenize(status_dict['text'])
-        if tokenized.get('arg_structures') is not None:
-            status_dict['arg_structures'] = tokenized.get('arg_structures')
-        if tokenized.get('tokens') is not None:
-            status_dict['tokens'] = tokenized.get('tokens')
-
-        # Now try to find location
-        status_dict = location.get_location(status_dict)
-
-        # FIXME: Isso aqui precisa ser resolvido na liblightbase
-        # Put status from base in LB Status Object
-        #status = lbstatus.Status(
-        #    origin=result.origin,
-        #    inclusion_date=datetime.datetime.strptime(result.inclusion_date, "%d/%m/%Y"),
-        #    search_term=result.search_term,
-        #    text=result.text,
-        #    source=result.source,
-        #    status_base=self.status_base,
-        #    tokens=tokenized.get('tokens'),
-        #    arg_structures=tokenized.get('arg_structures')
-        #)
-        #status.srl_tokenize()
-        #print(status.tokens)
-        #print(status.arg_structures)
-        try:
-            self.status_base.documentrest.update(
-                status_dict['_metadata']['id_doc'],
-                json.dumps(status_dict)
-            )
-            # FIXME: Esse método só vai funcionar quando a liblightbase estiver ok
-            #status.update(id_doc=result._metadata.id_doc)
-        except:
-            exctype, value = sys.exc_info()[:2]
-            log.error("Error updating document id = %d\n%s" % (status_dict['_metadata']['id_doc'], value))
-            return False
-
-        # Process tokens
-        params = {
-            'status_id': status_dict['_metadata']['id_doc']
-        }
-        result = dictionary.process_tokens(params)
-        log.debug("Corpus da tokenização calculado %s", result)
-
-        return True
+        return result

@@ -44,6 +44,7 @@ setup(name='LBSociam',
         crime = lbsociam.commands:CrimeCommands
         dictionary = lbsociam.commands:DictionaryCommands
         analytics = lbsociam.commands:AnalyticsCommands
+        location = lbsociam.commands:LocationCommands
       """,
       )
 

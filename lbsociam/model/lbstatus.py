@@ -4,8 +4,11 @@ __author__ = 'eduardo'
 import datetime
 import logging
 import requests
+import sys
+import json
 from requests.exceptions import HTTPError
 from lbsociam import LBSociam
+from lbsociam.lib import srl, dictionary, location
 from liblightbase import lbrest
 from liblightbase.lbutils import conv
 from liblightbase.lbbase.struct import Base, BaseMetadata
@@ -234,7 +237,7 @@ class StatusBase(LBSociam):
             name='id_location',
             alias='ID Location',
             description='Location Identification',
-            datatype='Text',
+            datatype='Integer',
             indices=[],
             multivalued=False,
             required=False
@@ -595,6 +598,71 @@ class StatusBase(LBSociam):
 
         return collection
 
+    def process_tokens(self, id_doc):
+        """
+        Process tokens for this id_doc
+
+        :param id_doc: Document to be processed
+        :return: True or False
+        """
+        result = self.get_document(id_doc)
+
+        # JSON
+        status_dict = conv.document2dict(self.lbbase, result)
+        # Manually add id_doc
+        status_dict['_metadata'] = dict()
+        status_dict['_metadata']['id_doc'] = id_doc
+
+        # SRL tokenize
+        tokenized = srl.srl_tokenize(status_dict['text'])
+        if tokenized.get('arg_structures') is not None:
+            status_dict['arg_structures'] = tokenized.get('arg_structures')
+        if tokenized.get('tokens') is not None:
+            status_dict['tokens'] = tokenized.get('tokens')
+
+        # Now try to find location
+        status_dict = location.get_location(status_dict)
+
+        # FIXME: Isso aqui precisa ser resolvido na liblightbase
+        # Put status from base in LB Status Object
+        #status = lbstatus.Status(
+        #    origin=result.origin,
+        #    inclusion_date=datetime.datetime.strptime(result.inclusion_date, "%d/%m/%Y"),
+        #    search_term=result.search_term,
+        #    text=result.text,
+        #    source=result.source,
+        #    status_base=self.status_base,
+        #    tokens=tokenized.get('tokens'),
+        #    arg_structures=tokenized.get('arg_structures')
+        #)
+        #status.srl_tokenize()
+        #print(status.tokens)
+        #print(status.arg_structures)
+        try:
+            self.documentrest.update(
+                status_dict['_metadata']['id_doc'],
+                json.dumps(status_dict)
+            )
+            # FIXME: Esse método só vai funcionar quando a liblightbase estiver ok
+            #status.update(id_doc=result._metadata.id_doc)
+        except:
+            exctype, value = sys.exc_info()[:2]
+            log.error("Error updating document id = %d\n%s" % (status_dict['_metadata']['id_doc'], value))
+            return False
+
+        # Process tokens
+        rest_url = self.documentrest.rest_url
+        rest_url += "/" + self.lbbase._metadata.name + "/doc/"
+        rest_url += str(status_dict['_metadata']['id_doc'])
+        params = {
+            'status_id': status_dict['_metadata']['id_doc'],
+            'rest_url': rest_url
+        }
+        result = dictionary.process_tokens(params)
+        log.debug("Corpus da tokenização calculado: id_doc = %s", status_dict['_metadata']['id_doc'])
+
+        return True
+
 status_base = StatusBase()
 StatusClass = status_base.metaclass
 ArgStructures = status_base.arg_structures
@@ -731,6 +799,11 @@ class Status(StatusClass):
         return result
 
     def update(self, id_doc):
+        """
+        Update document on base
+        :param id_doc: document to be updated
+        :return: Ok or HTTPException if error
+        """
         # print(self.arg_structures)
         document = self.status_to_json()
         # print(document)

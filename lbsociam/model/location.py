@@ -11,6 +11,7 @@ from liblightbase.lbbase.struct import Base, BaseMetadata
 from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
 from liblightbase.lbsearch.search import *
+from liblightbase.lbutils import conv
 
 log = logging.getLogger()
 
@@ -81,6 +82,26 @@ class LocationBase(LBSociam):
             required=True
         ))
 
+        loc_origin = Field(**dict(
+            name='loc_origin',
+            description='Location origin',
+            alias='Location origin',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=False,
+            required=True
+        ))
+
+        city = Field(**dict(
+            name='city',
+            description='Location that comes from social networks. Used in searches',
+            alias='City',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=False,
+            required=True
+        ))
+
         base_metadata = BaseMetadata(**dict(
             name='location',
             description='Status location'
@@ -91,6 +112,8 @@ class LocationBase(LBSociam):
         content_list.append(latitude)
         content_list.append(longitude)
         content_list.append(location_type)
+        content_list.append(loc_origin)
+        content_list.append(city)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -210,17 +233,19 @@ class LocationBase(LBSociam):
     def get_location(self, name):
         """
         Find location in base
+
         :param name: Location to search
         :return: Search result as dict
         """
         orderby = OrderBy(asc=['id_doc'])
         select = ['*']
+        literal = "document->>'city' = '" + name + "'"
         search = Search(
             select=select,
             limit=1,
             order_by=orderby,
             offset=0,
-            literal="document->'location'->>'city' = '" + name + "'",
+            literal=literal,
         )
         url = self.documentrest.rest_url
         url += "/" + self.lbbase._metadata.name + "/doc"
@@ -233,9 +258,24 @@ class LocationBase(LBSociam):
         collection = response.json()
 
         # Retorna resultado
-        if collection.get('results') is None:
-            saida = None
+        if collection.get('results') is not None:
+            if len(collection['results']) == 0:
+                saida = None
+            else:
+                saida = collection['results'][0]
+                saida['id_location'] = collection['results'][0]['_metadata']['id_doc']
         else:
-            saida = collection['results'][0]
+            saida = None
 
         return saida
+
+    def add_location(self, location):
+        """
+        Add location on LB Base for locations
+        :param location: location dict as base structure
+        :return: Insertion results
+        """
+        document = conv.dict2document(self.lbbase, location)
+        document_json = conv.document2json(self.lbbase, document)
+        result = self.documentrest.create(document_json)
+        return result

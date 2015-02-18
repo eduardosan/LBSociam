@@ -9,7 +9,7 @@ import requests
 import nltk
 import re
 import json
-from lbsociam.model.lbstatus import StatusBase
+# from lbsociam.model.lbstatus import StatusBase
 from lbsociam.model.dictionary import DictionaryBase
 from liblightbase.lbsearch.search import *
 from lbsociam.model import dictionary
@@ -85,11 +85,11 @@ def create_from_status(lbstatus, outfile=None, offset=0):
     :param offset: Start number
     :return: Gensim Dictionary object instance
     """
-    try:
-        assert isinstance(lbstatus, StatusBase)
-    except AssertionError as e:
-        log.error("You have to supply a status instance\n%s", e)
-        return
+    # try:
+    #     assert isinstance(lbstatus, StatusBase)
+    # except AssertionError as e:
+    #     log.error("You have to supply a status instance\n%s", e)
+    #     return
 
     # Stopwords and punctuations removal
     stopwords = nltk.corpus.stopwords.words('portuguese')
@@ -157,11 +157,11 @@ def create_from_status(lbstatus, outfile=None, offset=0):
 
 
 def insert_from_status(lbstatus, outfile=None):
-    try:
-        assert isinstance(lbstatus, StatusBase)
-    except AssertionError as e:
-        log.error("You have to supply a status instance\n%s", e)
-        return
+    # try:
+    #     assert isinstance(lbstatus, StatusBase)
+    # except AssertionError as e:
+    #     log.error("You have to supply a status instance\n%s", e)
+    #     return
 
     task_queue = Queue()
     done_queue = Queue()
@@ -172,6 +172,10 @@ def insert_from_status(lbstatus, outfile=None):
     dic_base.remove_base()
     dic_base.create_base()
 
+    # Lust send the GET request
+    rest_url = lbstatus.documentrest.rest_url
+    rest_url += "/" + lbstatus.lbbase._metadata.name + "/doc/"
+
     id_status_list = lbstatus.get_document_ids()
     if id_status_list is None:
         log.error("No status found. Import some status first")
@@ -180,7 +184,8 @@ def insert_from_status(lbstatus, outfile=None):
     for elm in id_status_list:
         params = dict(
             status_id=elm,
-            outfile=outfile
+            outfile=outfile,
+            rest_url=rest_url + elm
         )
         task_queue.put(params)
 
@@ -198,7 +203,17 @@ def insert_from_status(lbstatus, outfile=None):
     # Merge results with this dictionary
     log.debug("Processing results from dictionary creation")
     for i in range(len(id_status_list)):
-        dic2 = done_queue.get()
+        # Update status after processing
+        processed = done_queue.get()
+        dic2 = processed['dic']
+        result = processed['status']
+
+        status_dict = conv.document2dict(lbstatus.lbbase, result)
+        try:
+            retorno = lbstatus.documentrest.update(params['status_id'], json.dumps(status_dict))
+        except HTTPError as e:
+            log.error("Error updating document id = %d\n%s" % (params['status_id'], e.message))
+
         dic.merge_with(dic2)
         log.debug("111111111111111111111: Novo dicionário %s", dic)
         if outfile is not None:
@@ -222,24 +237,35 @@ def process_tokens(params):
     Process the documents
     :return: Dictionary object
     """
-    lbstatus = StatusBase()
+    # lbstatus = StatusBase()
     # Now return all the documents collection and parse it
     dic = corpora.Dictionary()
     stemmer = nltk.stem.RSLPStemmer()
 
-    result = lbstatus.get_document(params['status_id'])
+    # result = lbstatus.get_document(params['status_id'])
 
-    if getattr(result, 'tokens', None) is not None:
+    # Try to find doc
+    response = requests.get(
+        url=params['rest_url']
+    )
+
+    if response.status_code != 200:
+        log.error("Error trying to get document id = %s", params['status_id'])
+        return None
+
+    result = response.json()
+
+    if result.get('tokens') is not None:
             # Search for the events as argument
             tokens = list()
-            for structure in result.arg_structures:
-                for argument in structure.argument:
-                    argument_name = argument.argument_name
+            for structure in result.get('arg_structures'):
+                for argument in structure.get('argument'):
+                    argument_name = argument['argument_name']
                     log.debug("Looking for string as argument in argument_name = %s", argument_name)
 
                     if re.match('A[0-9]', argument_name) is not None:
                         log.debug("String match for argument_name = %s", argument_name)
-                        for elm in argument.argument_value:
+                        for elm in argument['argument_value']:
 
                             # Check valid tokens
                             if valid_word(elm):
@@ -273,19 +299,14 @@ def process_tokens(params):
                                 log.debug("Invalid tokens in %s", elm)
 
             # Add tokens back to status object
-            result.events_tokens = tokens
-            status_dict = conv.document2dict(lbstatus.lbbase, result)
-            try:
-                retorno = lbstatus.documentrest.update(params['status_id'], json.dumps(status_dict))
-            except HTTPError as e:
-                log.error("Error updating document id = %d\n%s" % (params['status_id'], e.message))
+            result['events_tokens'] = tokens
 
             dic.add_documents([tokens])
     else:
         log.error("Tokens não encontrados para o documento %s", params['status_id'])
 
     # Add search term on dictionary
-    elm = result.search_term
+    elm = result['search_term']
     stem = stemmer.stem(elm)
     dic_elm = dictionary.Dictionary(
         token=elm,
@@ -310,7 +331,10 @@ def process_tokens(params):
         document = dic_elm.update(id_doc)
         log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
 
-    return dic
+    return {
+        'dic': dic,
+        'status': result
+    }
 
 
 # Function run by worker processes
@@ -321,11 +345,19 @@ def worker(inp, output):
 
 
 def create_file(lbstatus, outfile, offset=0):
-    try:
-        assert isinstance(lbstatus, StatusBase)
-    except AssertionError as e:
-        log.error("You have to supply a status instance\n%s", e)
-        return
+    """
+    Create status file
+
+    :param lbstatus: StatusBase instance
+    :param outfile: File to record results
+    :param offset: Starting point
+    :return: True or false
+    """
+    # try:
+    #     assert isinstance(lbstatus, StatusBase)
+    # except AssertionError as e:
+    #     log.error("You have to supply a status instance\n%s", e)
+    #     return
 
     processes = int(lbstatus.processes)
     # 100 times the maximum number of processes, for some reason

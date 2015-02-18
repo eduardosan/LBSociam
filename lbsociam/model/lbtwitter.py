@@ -3,23 +3,33 @@
 __author__ = 'eduardo'
 import twitter
 import json
+import datetime
+import logging
 from lbsociam import encoders
 from lbsociam import LBSociam
+from lbsociam.model import lbstatus
+from lbsociam.lib import srl, dictionary, location
 from liblightbase.lbutils import conv
 from liblightbase import lbrest
+
+log = logging.getLogger()
 
 
 class Twitter(LBSociam):
     """
     Twitter operations
     """
-    def __init__(self, debug=False, term=None):
+    def __init__(self, debug=False, term=None, status_base=None):
         LBSociam.__init__(self)
         self.debug = debug
         self.term = term
         self.api = None
         self.hashtag = None
         self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
+        if status_base is None:
+            self.status_base = lbstatus.status_base
+        else:
+            self.status_base = status_base
 
     @property
     def api(self):
@@ -30,12 +40,14 @@ class Twitter(LBSociam):
         """
         Initialize twitter API
         """
-        self._api = twitter.Api(consumer_key=self.twitter_consumer_key,
-          consumer_secret=self.twitter_consumer_secret,
-          access_token_key=self.twitter_access_token,
-          access_token_secret=self.twitter_access_secret,
-          debugHTTP=self.debug,
-          use_gzip_compression=True)
+        self._api = twitter.Api(
+            consumer_key=self.twitter_consumer_key,
+            consumer_secret=self.twitter_consumer_secret,
+            access_token_key=self.twitter_access_token,
+            access_token_secret=self.twitter_access_secret,
+            debugHTTP=self.debug,
+            use_gzip_compression=True
+        )
 
     @property
     def hashtag(self):
@@ -68,8 +80,10 @@ class Twitter(LBSociam):
         """
         Search public timeline
         """
-        status_list = self.api.GetSearch(geocode=None, term=self.term,
-          since_id=None, lang='pt', count=count, result_type='recent')
+        status_list = self.api.GetSearch(
+            geocode=None, term=self.term, since_id=None,
+            lang='pt', count=count, result_type='recent'
+        )
 
         saida = []
         if include_rt is True:
@@ -104,3 +118,61 @@ class Twitter(LBSociam):
             )
 
         return status_list
+
+    def store_twitter(self, status_list, tokenize=True):
+        """
+        Store twitter status in LB Database
+
+        :param status_list: List of status to be stored
+        :param tokenize: Whether we should tokenize it directly or not
+        :return: True or None if it isn't possible to store it
+        """
+        for elm in status_list:
+            status_json = self.status_to_json([elm])
+
+            status = lbstatus.Status(
+                origin='twitter',
+                inclusion_date=datetime.datetime.now(),
+                inclusion_datetime=datetime.datetime.now(),
+                search_term=self.term,
+                text=elm.text,
+                source=status_json,
+                status_base=self.status_base
+            )
+
+            retorno = status.create_status()
+
+            if retorno is None:
+                log.error("Error inserting status %s on Base" % elm.text)
+            elif tokenize:
+                status_dict = conv.document2dict(self.status_base.lbbase, status)
+
+                # Manually add id_doc
+                status_dict['_metadata'] = dict()
+                status_dict['_metadata']['id_doc'] = retorno
+
+                # SRL tokenize
+                tokenized = srl.srl_tokenize(status_dict['text'])
+                if tokenized.get('arg_structures') is not None:
+                    status_dict['arg_structures'] = tokenized.get('arg_structures')
+                if tokenized.get('tokens') is not None:
+                    status_dict['tokens'] = tokenized.get('tokens')
+
+                # Now try to find location
+                status_dict = location.get_location(status_dict)
+
+                # Update status with new tokenized structure
+                self.status_base.documentrest.update(retorno, json.dumps(status_dict))
+
+                # Process tokens if selected
+                rest_url = status.status_base.documentrest.rest_url
+                rest_url += "/" + status.status_base.lbbase._metadata.name + "/doc/"
+                rest_url += str(retorno)
+                params = {
+                    'status_id': retorno,
+                    'rest_url': rest_url
+                }
+                result = dictionary.process_tokens(params)
+                log.debug("Corpus da tokenização calculado. id_doc = %s", retorno)
+
+        return retorno

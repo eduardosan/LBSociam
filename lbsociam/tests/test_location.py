@@ -28,10 +28,6 @@ class StatusBaseTestCase(TwitterBaseTestCase):
         # Load setup from previous
         TwitterBaseTestCase.setUp(self)
 
-        # Load data to perform searches
-        self.command = command
-        pass
-
     def test_create_base(self):
         """
         Test create base on Lightbase
@@ -48,7 +44,9 @@ class StatusBaseTestCase(TwitterBaseTestCase):
         Test location base storage
         """
         # Load data
-        self.lbt.search(count=10)
+        status_list = self.lbt.search(count=10)
+        result = self.lbt.store_twitter(status_list=status_list, tokenize=True)
+        self.assertTrue(result)
 
         status_id_list = self.status_base.get_document_ids()
         log.debug("Number of status found: %s", len(status_id_list))

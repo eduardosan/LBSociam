@@ -56,17 +56,20 @@ def get_location(status, cache=True):
             result = location_base.get_location(location)
             if result is None:
                 result = maps_search(location)
-            else:
-                # Just return stored values
-                status['location'] = result
-                return status
+                if result is not None:
+                    # This is the string used on search
+                    result['city'] = location
+                    id_doc = location_base.add_location(result)
+                    log.debug("New location stored. id_doc = %s", id_doc)
+                    status['location']['id_location'] = id_doc
+
         else:
             result = maps_search(location)
             
         if result is not None:
             status['location']['latitude'] = result['latitude']
             status['location']['longitude'] = result['longitude']
-            status['location']['city'] = result['location']
+            status['location']['city'] = result['location_name']
 
             # Register source
             status['location']['loc_origin'] = 'location'
@@ -107,17 +110,19 @@ def get_location(status, cache=True):
                 result = location_base.get_location(location)
                 if result is None:
                     result = maps_search(location)
-                else:
-                    # Just return stored values
-                    status['location'] = result
-                    return status
+                    if result is not None:
+                        # This is the string used on search
+                        result['city'] = location
+                        id_doc = location_base.add_location(result)
+                        log.debug("New location stored. id_doc = %s", id_doc)
+                        status['location']['id_location'] = id_doc
             else:
                 result = maps_search(location)
 
             if result is not None:
                 status['location']['latitude'] = result['latitude']
                 status['location']['longitude'] = result['longitude']
-                status['location']['city'] = result['location']
+                status['location']['city'] = result['location_name']
 
                 # Register source
                 status['location']['loc_origin'] = 'user_location'
@@ -137,17 +142,19 @@ def get_location(status, cache=True):
                     result = location_base.get_location(location)
                     if result is None:
                         result = maps_search(location)
-                    else:
-                        # Just return stored values
-                        status['location'] = result
-                        return status
+                        if result is not None:
+                            # This is the string used on search
+                            result['city'] = location
+                            id_doc = location_base.add_location(result)
+                            log.debug("New location stored. id_doc = %s", id_doc)
+                            status['location']['id_location'] = id_doc
                 else:
                     result = maps_search(argument['argument_value'])
 
                 if result is not None:
                     status['location']['latitude'] = result['latitude']
                     status['location']['longitude'] = result['longitude']
-                    status['location']['city'] = result['location']
+                    status['location']['city'] = result['location_name']
 
                     # Register source
                     status['location']['loc_origin'] = 'srl'
@@ -188,16 +195,20 @@ def maps_search(location):
         lat = result[0]['geometry']['location']['lat']
         lng = result[0]['geometry']['location']['lng']
         loc = result[0]['address_components'][0]['long_name']
+        type = result[0]['geometry']['location_type']
     except IndexError as e:
         log.error("Invalid results %s\n%s", result, e)
         lat = result['geometry']['location']['lat']
         lng = result['geometry']['location']['lng']
         loc = result['address_components'][0]['long_name']
+        type = result['geometry']['location_type']
 
     result_dict = {
         'latitude': lat,
         'longitude': lng,
-        'location': loc
+        'location_name': loc,
+        'location_type': type,
+        'loc_origin': 'GMaps'
     }
 
     log.debug("SEARCH: result dict: %s", result_dict)
