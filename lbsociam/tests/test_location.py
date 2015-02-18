@@ -43,6 +43,10 @@ class StatusBaseTestCase(TwitterBaseTestCase):
         """
         Test location base storage
         """
+        location_base = location.LocationBase()
+        location_lbbase = location_base.create_base()
+        self.assertIsInstance(location_lbbase, Base)
+
         # Load data
         status_list = self.lbt.search(count=10)
         result = self.lbt.store_twitter(status_list=status_list, tokenize=True)
@@ -66,6 +70,9 @@ class StatusBaseTestCase(TwitterBaseTestCase):
                 json.dumps(status_dict)
             )
         )
+
+        result = location_base.remove_base()
+        self.assertTrue(result)
 
     def tearDown(self):
         """
