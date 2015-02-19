@@ -577,7 +577,8 @@ class StatusBase(LBSociam):
             "source",
             "inclusion_datetime",
             "text",
-            "origin"
+            "origin",
+            "search_term"
         ]
 
         search = Search(

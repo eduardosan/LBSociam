@@ -39,14 +39,14 @@ def valid_word(word):
         for text in word:
             if text not in stopwords and \
                     re.match(r'\w+', text) and \
-                    len(text) > 1:
+                    len(text) > 2:
                 saida.append(text)
 
         return saida
 
     if word not in stopwords and \
             re.match(r'\w+', word) and \
-            len(word) > 1:
+            len(word) > 2:
         return True
     else:
         return False

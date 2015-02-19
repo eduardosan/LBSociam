@@ -127,6 +127,16 @@ class CrimesBase(LBSociam):
             required=False
         ))
 
+        color = Field(**dict(
+            name='color',
+            description='Color to be shown on interface',
+            alias='Color',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
         base_metadata = BaseMetadata(**dict(
             name='crime',
             description='Criminal data from social networks',
@@ -148,6 +158,7 @@ class CrimesBase(LBSociam):
         content_list.append(date)
         content_list.append(images)
         content_list.append(default_token)
+        content_list.append(color)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -369,6 +380,30 @@ class CrimesBase(LBSociam):
         response = results['results'][0]
 
         return response
+
+    def get_all(self):
+        """
+        Get category for the supplied token
+        """
+        orderby = OrderBy(['category_name'])
+        search = Search(
+            select=['*'],
+            limit=None,
+            order_by=orderby,
+        )
+        params = {
+            '$$': search._asjson()
+        }
+
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
+        result = requests.get(
+            url=url,
+            params=params
+        )
+        results = result.json()
+
+        # Now find token for this category
+        return results['results']
 
 
 crimes_base = CrimesBase()
