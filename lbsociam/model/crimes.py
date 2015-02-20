@@ -405,6 +405,63 @@ class CrimesBase(LBSociam):
         # Now find token for this category
         return results['results']
 
+    def get_token_by_name(self, name, full_search=False):
+        """
+        Return a crime by name
+        """
+        orderby = OrderBy(['default_token'])
+        search = Search(
+            limit=1,
+            order_by=orderby,
+            literal="document->>'default_token' = '" + name + "'",
+        )
+        params = {
+            '$$': search._asjson()
+        }
+
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
+        result = requests.get(
+            url=url,
+            params=params
+        )
+        results = result.json()
+
+        if full_search is True and len(results['results']) == 0:
+            log.debug("Token %s not found. Trying on other tokens", name)
+            # Try to find in other tokens
+            orderby = OrderBy(['default_token'])
+            search = Search(
+                limit=None,
+                order_by=orderby,
+                literal="document->>'default_token' <> '" + name + "'",
+            )
+            params = {
+                '$$': search._asjson()
+            }
+
+            url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
+            result = requests.get(
+                url=url,
+                params=params
+            )
+            results = result.json()
+            for elm in results['results']:
+                if elm.get('tokens') is not None:
+                    log.debug("Trying to find token %s in tokens list %s", name, elm['tokens'])
+                    if any(name in s for s in elm['tokens']):
+                        # Return the element as we found the token
+                        log.debug("Token %s found on string comparison\n%s", name, elm)
+                        return elm
+
+            # If we got here the token was not found
+            response = None
+        elif len(results['results']) == 0:
+            response = None
+        else:
+            response = results['results'][0]
+
+        return response
+
 
 crimes_base = CrimesBase()
 
