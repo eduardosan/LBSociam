@@ -20,7 +20,8 @@ access_token =
 access_secret =
 
 [lbgenerator]
-rest_url = http://edusantos.no-ip.biz/api
+rest_url = http://localhost/api
+es_url = http://localhost:9200/lbsociam
 
 [maps]
 api_key =

@@ -300,7 +300,7 @@ class Dictionary(dictionary_base.metaclass):
             log.error(err.strerror)
 
             # Provavelmente é repetido. Tenta retornar a última ocorrência e adiciona um contador
-            #dic = self.dictionary_base.get_by_token(self.token)
+            # dic = self.dictionary_base.get_by_token(self.token)
             return None
 
         return result

@@ -141,8 +141,8 @@ class CrimesBase(LBSociam):
             name='crime',
             description='Criminal data from social networks',
             password='123456',
-            idx_exp=False,
-            idx_exp_url='index_url',
+            idx_exp=True,
+            idx_exp_url=self.es_url + '/crime',
             idx_exp_time=300,
             file_ext=True,
             file_ext_time=300,
@@ -405,62 +405,104 @@ class CrimesBase(LBSociam):
         # Now find token for this category
         return results['results']
 
-    def get_token_by_name(self, name, full_search=False):
+    def get_token_by_name(self, name):
         """
         Return a crime by name
         """
-        orderby = OrderBy(['default_token'])
-        search = Search(
-            limit=1,
-            order_by=orderby,
-            literal="document->>'default_token' = '" + name + "'",
-        )
         params = {
-            '$$': search._asjson()
+            'q': name
         }
 
-        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/es/_search'
         result = requests.get(
             url=url,
             params=params
         )
         results = result.json()
 
-        if full_search is True and len(results['results']) == 0:
-            log.debug("Token %s not found. Trying on other tokens", name)
-            # Try to find in other tokens
-            orderby = OrderBy(['default_token'])
-            search = Search(
-                limit=None,
-                order_by=orderby,
-                literal="document->>'default_token' <> '" + name + "'",
-            )
-            params = {
-                '$$': search._asjson()
-            }
+        if results['hits']['total'] == 0:
+            log.debug("Token %s not found", name)
+            return None
 
-            url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
-            result = requests.get(
-                url=url,
-                params=params
-            )
-            results = result.json()
-            for elm in results['results']:
-                if elm.get('tokens') is not None:
-                    log.debug("Trying to find token %s in tokens list %s", name, elm['tokens'])
-                    if any(name in s for s in elm['tokens']):
-                        # Return the element as we found the token
-                        log.debug("Token %s found on string comparison\n%s", name, elm)
-                        return elm
-
-            # If we got here the token was not found
-            response = None
-        elif len(results['results']) == 0:
-            response = None
-        else:
-            response = results['results'][0]
+        response = results['hits']['hits'][0]['_source']
+        score = results['hits']['hits'][0]['_score']
+        response['probability'] = score
+        log.debug("Token %s found. Score = %s", name, score)
 
         return response
+
+    def get_tokens(self):
+        """
+        Get events corpus
+        :return: Events corpus
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        select = ['default_token', 'tokens']
+        search = Search(
+            select=select,
+            limit=None,
+            order_by=orderby,
+            offset=0
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+        saida = list()
+
+        # Cria uma lista de resultados como ID
+        if collection.get('results') is None:
+            return None
+
+        for results in collection['results']:
+            if results is not None:
+                tokens = [results['default_token']]
+                if len(results['tokens']) > 0 and type(results['tokens']) == list:
+                    for token_elm in results['tokens'][0].split(','):
+                        tokens.append(token_elm)
+
+                saida.append(tokens)
+
+        return saida
+
+    def get_text(self):
+        """
+        Get events corpus
+        :return: Events corpus
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        select = ['category_pretty_name']
+        search = Search(
+            select=select,
+            limit=None,
+            order_by=orderby,
+            offset=0
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+        saida = list()
+
+        # Cria uma lista de resultados como ID
+        if collection.get('results') is None:
+            return None
+
+        for results in collection['results']:
+            if results is not None:
+                saida.append(results['category_pretty_name'])
+
+        return saida
 
 
 crimes_base = CrimesBase()

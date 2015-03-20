@@ -5,6 +5,7 @@ __author__ = 'eduardo'
 import logging
 import requests
 from .lbstatus import status_base
+from .crimes import crimes_base
 from gensim.corpora import dictionary
 from liblightbase.lbsearch.search import *
 
@@ -54,3 +55,38 @@ class EventsCorpus(object):
         :return: Formatted corpus
         """
         return [self.dic.doc2bow(text) for text in self.events_tokens]
+
+
+class CategoriesCorpus(object):
+    """
+    Corpus to categories
+    """
+    def __init__(self):
+        """
+        Building method
+        """
+        self.tokens = crimes_base.get_tokens()
+        self.dic = self.get_dic()
+
+    def get_dic(self):
+        """
+        Creates a gensim dictionary and return it
+        :return: Gensim dictionary
+        """
+        return dictionary.Dictionary(self.tokens)
+
+    @property
+    def documents(self):
+        """
+        Get documents
+        :return: Documents as texts
+        """
+        return status_base.get_text()
+
+    @property
+    def corpus(self):
+        """
+        Get corpus
+        :return: Formatted corpus
+        """
+        return [self.dic.doc2bow(text) for text in self.tokens]
