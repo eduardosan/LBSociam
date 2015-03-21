@@ -5,11 +5,15 @@ __author__ = 'eduardo'
 import logging
 import json
 import re
+import time
 from lbsociam.model import gmaps
-from googlemaps.exceptions import ApiError, TransportError, Timeout
+from googlemaps.exceptions import ApiError, TransportError, Timeout, _RetriableRequest
 from lbsociam.model import location as loc
 
 log = logging.getLogger()
+
+# Wakeup time if Search APi is sleeping
+wakeup_time = None
 
 
 def get_location(status, cache=True):
@@ -181,17 +185,42 @@ def maps_search(location):
     :return: dict with latitude and longitude
     """
     log.debug("SEARCH: location %s", location)
+
+    if wakeup_time is not None:
+        # Check if it is time to wakeup
+        now = time.time()
+        if now > wakeup_time:
+            log.info("LOCATION: Waking up at %s", time.ctime())
+            # Set sleep time to None
+            set_wakeup_time(None)
+        else:
+            log.debug("Wakeup time %s not reache at %s", time.ctime(wakeup_time), time.ctime())
+            return None
+
     maps = gmaps.GMaps()
     try:
         result = maps.client.geocode(location)
+
         if len(result) == 0:
             return None
+
+    except _RetriableRequest as e:
+        log.error("LOCATION: Limite de API excedido. Esperando 24h...")
+        log.error(e.message)
+        log.info("LOCATION: Sleeping at %s", time.ctime())
+        # This will make it sleep 24 hours
+        w_time = time.time() + 86400
+        set_wakeup_time(w_time)
+        return None
+
     except ApiError as e:
         log.error("Location not found\n%s", e)
         return None
+
     except TransportError as e:
         log.error("Location not found\n%s", e)
         return None
+
     except Timeout as e:
         log.error("Location not found\n%s", e)
         return None
@@ -220,3 +249,8 @@ def maps_search(location):
     log.debug("SEARCH: result dict: %s", result_dict)
 
     return result_dict
+
+
+def set_wakeup_time(w_time):
+    global wakeup_time
+    wakeup_time = w_time

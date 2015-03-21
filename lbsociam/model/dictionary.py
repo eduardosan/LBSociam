@@ -312,8 +312,21 @@ class Dictionary(dictionary_base.metaclass):
         :return:
         """
         document = self.dictionary_to_json()
-        #print(document)
-        return self.dictionary_base.documentrest.update(id=id_doc, document=document)
+        # print(document)
+        url = self.dictionary_base.documentrest.rest_url
+        url += "/" + self.dictionary_base.lbbase._metadata.name + "/doc/" + str(id_doc)
+        vars = {
+            'value': document
+        }
+        response = requests.put(
+            url=url,
+            data=vars
+        )
+
+        # Raise any update errors
+        response.raise_for_status()
+
+        return response.text
 
     def get_id_doc(self):
         """

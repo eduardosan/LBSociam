@@ -12,6 +12,7 @@ from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
 from liblightbase.lbsearch.search import *
 from liblightbase.lbutils import conv
+from ..lib import dictionary
 
 log = logging.getLogger()
 
@@ -240,8 +241,13 @@ class LocationBase(LBSociam):
         :param name: Location to search
         :return: Search result as dict
         """
+        # Remove slashes to avoid errors on ES
+        es_name = name.replace("/", " ")
+        es_name = dictionary.valid_word(es_name)
+
+        log.debug("New ES string: %s", es_name)
         params = {
-            'q': name
+            'q': es_name
         }
 
         url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/es/_search'

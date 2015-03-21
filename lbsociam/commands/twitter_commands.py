@@ -237,15 +237,15 @@ class TwitterCommands(command.Command):
 
         # Make sure we don't have to validate returned structures from base
         self.status_base.metaclass.__valreq__ = False
-        #collection = self.status_base.documentrest.get_collection(search)
+        # collection = self.status_base.documentrest.get_collection(search)
 
         id_document_list = self.status_base.get_document_ids(offset=offset)
 
         for id_doc in id_document_list:
-            #log.debug("1111111111111111111111111111111111111111111\n%s", result._metadata)
+            # log.debug("1111111111111111111111111111111111111111111\n%s", result._metadata)
             task_queue.put(id_doc)
 
-        #if collection.result_count > (offset+processes):
+        # if collection.result_count > (offset+processes):
             # Call the same function again increasing offset
         #    self.srl_twitter(offset=(offset+processes))
 

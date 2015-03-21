@@ -645,7 +645,7 @@ class StatusBase(LBSociam):
                 json.dumps(status_dict)
             )
             # FIXME: Esse método só vai funcionar quando a liblightbase estiver ok
-            #status.update(id_doc=result._metadata.id_doc)
+            # status.update(id_doc=result._metadata.id_doc)
         except:
             exctype, value = sys.exc_info()[:2]
             log.error("Error updating document id = %d\n%s" % (status_dict['_metadata']['id_doc'], value))
