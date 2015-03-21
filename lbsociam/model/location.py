@@ -251,6 +251,12 @@ class LocationBase(LBSociam):
         )
         results = result.json()
 
+        # Look for errors
+        if results.get('error') is not None:
+            log.error("Error looking for token |%s|", name)
+            log.error(results.get('error'))
+            return None
+
         if results['hits']['total'] == 0:
             log.debug("Token %s not found", name)
             return None
