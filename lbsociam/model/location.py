@@ -104,7 +104,10 @@ class LocationBase(LBSociam):
 
         base_metadata = BaseMetadata(**dict(
             name='location',
-            description='Status location'
+            description='Status location',
+            idx_exp=True,
+            idx_exp_url=self.es_url + '/location',
+            idx_exp_time=300,
         ))
 
         content_list = Content()
@@ -237,37 +240,28 @@ class LocationBase(LBSociam):
         :param name: Location to search
         :return: Search result as dict
         """
-        orderby = OrderBy(asc=['id_doc'])
-        select = ['*']
-        literal = "document->>'city' = '" + name + "'"
-        search = Search(
-            select=select,
-            limit=1,
-            order_by=orderby,
-            offset=0,
-            literal=literal,
-        )
-        url = self.documentrest.rest_url
-        url += "/" + self.lbbase._metadata.name + "/doc"
-        vars = {
-            '$$': search._asjson()
+        params = {
+            'q': name
         }
 
-        # Envia requisição para o REST
-        response = requests.get(url, params=vars)
-        collection = response.json()
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/es/_search'
+        result = requests.get(
+            url=url,
+            params=params
+        )
+        results = result.json()
 
-        # Retorna resultado
-        if collection.get('results') is not None:
-            if len(collection['results']) == 0:
-                saida = None
-            else:
-                saida = collection['results'][0]
-                saida['id_location'] = collection['results'][0]['_metadata']['id_doc']
-        else:
-            saida = None
+        if results['hits']['total'] == 0:
+            log.debug("Token %s not found", name)
+            return None
 
-        return saida
+        response = results['hits']['hits'][0]['_source']
+        score = results['hits']['hits'][0]['_score']
+
+        response['id_location'] = results['hits']['hits'][0]['_source']['_metadata']['id_doc']
+        log.debug("Token %s found. Score = %s", name, score)
+
+        return response
 
     def add_location(self, location):
         """

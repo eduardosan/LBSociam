@@ -16,38 +16,9 @@ from lbsociam.model import dictionary
 from gensim import corpora, models
 from multiprocessing import Process, Queue
 from liblightbase.lbutils import conv
-from requests.exceptions import HTTPError
+from requests.exceptions import HTTPError, ConnectionError
 
 log = logging.getLogger()
-
-
-def search_word(target_word, tar_passage, left_margin=10, right_margin=10):
-    """
-        Function to get all the phrases that contain the target word in a text/passage tar_passage.
-        Workaround to save the output given by nltk Concordance function
-
-        str target_word, str tar_passage int left_margin int right_margin --> list of str
-        left_margin and right_margin allocate the number of words/pununciation before and after target word
-        Left margin will take note of the beginning of the text
-
-        Code extracted from https://simplypython.wordpress.com/2014/03/14/saving-output-of-nltk-text-concordance/
-    """
-
-    # Create list of tokens using nltk function
-    tokens = nltk.word_tokenize(tar_passage)
-
-    # Create the text of tokens
-    text = nltk.Text(tokens)
-
-    # Collect all the index or offset position of the target word
-    c = nltk.ConcordanceIndex(text.tokens, key=lambda s: s.lower())
-
-    # Collect the range of the words that is within the target word by using text.tokens[start:end].
-    # The map function is use so that when the offset position - the target range < 0, it will be default to zero
-    concordance_txt = ([text.tokens[map(lambda x: x-5 if (x-left_margin) > 0 else 0, [offset])[0]:offset+right_margin] for offset in c.offsets(target_word)])
-
-    # join the sentences for each of the target phrase and return it
-    return [''.join([x+' ' for x in con_sub]) for con_sub in concordance_txt]
 
 
 def valid_word(word):
@@ -274,9 +245,13 @@ def process_tokens(params):
     # result = lbstatus.get_document(params['status_id'])
 
     # Try to find doc
-    response = requests.get(
-        url=params['rest_url']
-    )
+    try:
+        response = requests.get(
+            url=params['rest_url']
+        )
+    except ConnectionError as e:
+        log.error("Connection error trying to get document id = %s\n%s", params['status_id'], e.message)
+        return None
 
     if response.status_code != 200:
         log.error("Error trying to get document id = %s", params['status_id'])
