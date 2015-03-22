@@ -16,6 +16,7 @@ from liblightbase.lbsearch.search import *
 from liblightbase.lbutils import conv
 from ..lib import srl, dictionary, location
 from multiprocessing import Queue, Process
+from requests.exceptions import ConnectionError
 
 log = logging.getLogger()
 
@@ -277,6 +278,11 @@ class TwitterCommands(command.Command):
         :param id_doc: Document id_doc to be processed
         :return: True or False
         """
-        result = self.status_base.process_tokens(id_doc)
+        try:
+            result = self.status_base.process_tokens(id_doc)
+        except ConnectionError as e:
+            log.error("CONNECTION ERROR: Error processing id_doc = %s\n%s", id_doc, e.message)
+            # Try again
+            self.process_tokens(id_doc)
 
         return result
