@@ -243,7 +243,8 @@ class LocationBase(LBSociam):
         """
         # Remove slashes to avoid errors on ES
         es_name = name.replace("/", " ")
-        es_name = dictionary.valid_word(es_name)
+        es_name = es_name.replace("!", "")
+        es_name = es_name.replace("?", "")
 
         log.debug("New ES string: %s", es_name)
         params = {
