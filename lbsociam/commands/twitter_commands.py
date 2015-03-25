@@ -283,6 +283,6 @@ class TwitterCommands(command.Command):
         except ConnectionError as e:
             log.error("CONNECTION ERROR: Error processing id_doc = %s\n%s", id_doc, e.message)
             # Try again
-            self.process_tokens(id_doc)
+            result = self.process_tokens(id_doc)
 
         return result
