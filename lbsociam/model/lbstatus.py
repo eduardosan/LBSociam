@@ -125,6 +125,16 @@ class StatusBase(LBSociam):
             required=False
         ))
 
+        hashtags = Field(**dict(
+            name='hashtags',
+            alias='hashtags',
+            description='Hashtags identified',
+            datatype='Text',
+            indices=['Textual'],
+            multivalued=True,
+            required=False
+        ))
+
         arg_content_list = Content()
 
         arg_metadata = GroupMetadata(**dict(
@@ -331,6 +341,7 @@ class StatusBase(LBSociam):
         content_list.append(positives)
         content_list.append(negatives)
         content_list.append(location)
+        content_list.append(hashtags)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -578,7 +589,8 @@ class StatusBase(LBSociam):
             "inclusion_datetime",
             "text",
             "origin",
-            "search_term"
+            "search_term",
+            "hashtags"
         ]
 
         search = Search(
@@ -624,6 +636,10 @@ class StatusBase(LBSociam):
         # Now try to find location
         status_dict = location.get_location(status_dict)
 
+        # Get hashtags
+        source = json.loads(status_dict['source'])
+        status_dict['hashtags'] = source[0].get('hashtags')
+
         # FIXME: Isso aqui precisa ser resolvido na liblightbase
         # Put status from base in LB Status Object
         #status = lbstatus.Status(
@@ -663,6 +679,63 @@ class StatusBase(LBSociam):
         log.debug("Corpus da tokenização calculado: id_doc = %s", status_dict['_metadata']['id_doc'])
 
         return True
+
+    def process_hashtags(self, id_doc):
+        result = self.get_document(id_doc)
+
+        # JSON
+        status_dict = conv.document2dict(self.lbbase, result)
+
+        # Manually add id_doc
+        status_dict['_metadata'] = dict()
+        status_dict['_metadata']['id_doc'] = id_doc
+
+        # Get hashtags
+        source = json.loads(status_dict['source'])
+        status_dict['hashtags'] = list()
+        hashtags = source[0].get('hashtags')
+        for elm in hashtags:
+            if elm.get('text') is not None:
+                status_dict['hashtags'].append(elm['text'])
+
+        try:
+            self.documentrest.update(
+                status_dict['_metadata']['id_doc'],
+                json.dumps(status_dict)
+            )
+            # FIXME: Esse método só vai funcionar quando a liblightbase estiver ok
+            # status.update(id_doc=result._metadata.id_doc)
+        except:
+            exctype, value = sys.exc_info()[:2]
+            log.error("Error updating document id = %d\n%s" % (status_dict['_metadata']['id_doc'], value))
+            return False
+
+    def get_hashtags(self):
+        """
+        Get a list of identified hashtags
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        select = [
+            "hashtags"
+        ]
+
+        search = Search(
+            select=select,
+            limit=None,
+            order_by=orderby,
+            offset=0
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+
+        return collection
 
 status_base = StatusBase()
 StatusClass = status_base.metaclass

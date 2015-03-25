@@ -135,6 +135,11 @@ class TwitterCommands(command.Command):
             return
         if cmd == 'srl_twitter':
             self.srl_twitter()
+
+            return
+        if cmd == 'hashtags_twitter':
+            self.hashtags_twitter()
+
             return
         else:
             log.error('Command "%s" not recognized' % (cmd,))
@@ -284,5 +289,74 @@ class TwitterCommands(command.Command):
             log.error("CONNECTION ERROR: Error processing id_doc = %s\n%s", id_doc, e.message)
             # Try again
             result = self.process_tokens(id_doc)
+
+        return result
+
+    def hashtags_twitter(self, offset=0):
+        """
+        Get hashtags from all status
+        """
+        task_queue = Queue()
+        done_queue = Queue()
+        processes = int(self.lbt.processes)
+        if self.options.init is not None:
+            # Set starting point from command line
+            offset = int(self.options.init)
+
+        orderby = OrderBy(asc=['id_doc'])
+        search = Search(
+            limit=processes,
+            offset=offset,
+            order_by=orderby
+        )
+        self.status_base.documentrest.response_object = False
+
+        # Make sure we don't have to validate returned structures from base
+        self.status_base.metaclass.__valreq__ = False
+        # collection = self.status_base.documentrest.get_collection(search)
+
+        id_document_list = self.status_base.get_document_ids(offset=offset)
+
+        for id_doc in id_document_list:
+            # log.debug("1111111111111111111111111111111111111111111\n%s", result._metadata)
+            task_queue.put(id_doc)
+
+        # if collection.result_count > (offset+processes):
+            # Call the same function again increasing offset
+        #    self.srl_twitter(offset=(offset+processes))
+
+        for i in range(processes):
+            # Permite o processamento paralelo dos tokens
+            Process(target=self.hashtags_worker, args=(task_queue, done_queue)).start()
+
+        # Process responses
+        log.debug("Processing responses")
+        for i in range(processes):
+            result = done_queue.get()
+            log.info("Processing finished %s", result)
+
+        # Tell child processes to stop
+        for i in range(processes):
+            task_queue.put('STOP')
+
+        return
+
+    def hashtags_worker(self, inp, output):
+        for func in iter(inp.get, 'STOP'):
+            result = self.process_hashtags(func)
+            output.put(result)
+
+    def process_hashtags(self, id_doc):
+        """
+        Process tokens
+        :param id_doc: Document id_doc to be processed
+        :return: True or False
+        """
+        try:
+            result = self.status_base.process_hashtags(id_doc)
+        except ConnectionError as e:
+            log.error("CONNECTION ERROR: Error processing id_doc = %s\n%s", id_doc, e.message)
+            # Try again
+            result = self.process_hashtags(id_doc)
 
         return result
