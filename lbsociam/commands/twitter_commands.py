@@ -98,6 +98,7 @@ class TwitterCommands(command.Command):
         super(TwitterCommands, self).__init__(name)
 
         # Set base to production
+        self.status_base = lbstatus.StatusBase()
         self.status_base.status_base = 'status'
         self.status_base.dictionary_base = 'dictionary'
 
@@ -106,7 +107,6 @@ class TwitterCommands(command.Command):
             term='crime',
             status_base=self.status_base
         )
-        self.status_base = lbstatus.StatusBase()
 
     def command(self):
         """

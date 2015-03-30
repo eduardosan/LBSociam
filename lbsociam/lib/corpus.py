@@ -6,10 +6,10 @@ from lbsociam.model.corpus import EventsCorpus
 
 
 @cache_region('long_term')
-def get_events_corpus():
+def get_events_corpus(status_base):
     """
     Get cached events corpus
     :return: EventsCorpus object instance
     """
-    c = EventsCorpus()
+    c = EventsCorpus(status_base=status_base)
     return c

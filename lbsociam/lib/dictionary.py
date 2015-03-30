@@ -9,8 +9,6 @@ import requests
 import nltk
 import re
 import json
-# from lbsociam.model.lbstatus import StatusBase
-from lbsociam.model.dictionary import DictionaryBase
 from liblightbase.lbsearch.search import *
 from lbsociam.model import dictionary
 from gensim import corpora, models
@@ -30,7 +28,11 @@ def valid_word(word):
     # Processing modules
     stopwords = set(nltk.corpus.stopwords.words('portuguese'))
     stopwords.update(['http', 'pro', 'https', 't.', 'co'])
-    re.LOCALE = 'pt_BR.UTF-8'
+    loc = re.LOCALE
+    if isinstance(loc, int):
+        re.LOCALE = 4
+    else:
+        re.LOCALE = 'pt_BR.UTF-8'
 
     # Validate list or single word
     if type(word) == list:

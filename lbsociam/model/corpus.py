@@ -3,8 +3,6 @@
 __author__ = 'eduardo'
 
 import logging
-from .lbstatus import status_base
-from .crimes import crimes_base
 from gensim.corpora import dictionary
 
 log = logging.getLogger()
@@ -14,10 +12,12 @@ class EventsCorpus(object):
     """
     Class to hold Events corpus
     """
-    def __init__(self):
+    def __init__(self,
+                 status_base):
         """
         Building method
         """
+        self.status_base = status_base
         self.events_tokens = status_base.get_events_tokens()
         self.dic = self.get_dic()
 
@@ -26,9 +26,9 @@ class EventsCorpus(object):
         When a dictionary loop is requested make one request at a time
         :return: JSON with dictionary data
         """
-        id_list = status_base.get_document_ids()
+        id_list = self.status_base.get_document_ids()
         for id_doc in id_list:
-            document = status_base.get_document(id_doc)
+            document = self.status_base.get_document(id_doc)
             yield self.dic.doc2bow(getattr(document, 'events_tokens', None))
 
     def get_dic(self):
@@ -44,7 +44,7 @@ class EventsCorpus(object):
         Get documents
         :return: Documents as texts
         """
-        return status_base.get_text()
+        return self.status_base.get_text()
 
     @property
     def corpus(self):
@@ -59,10 +59,11 @@ class CategoriesCorpus(object):
     """
     Corpus to categories
     """
-    def __init__(self):
+    def __init__(self, crimes_base):
         """
         Building method
         """
+        self.crimes_base = crimes_base
         self.tokens = crimes_base.get_tokens()
         self.dic = self.get_dic()
 
@@ -79,7 +80,7 @@ class CategoriesCorpus(object):
         Get documents
         :return: Documents as texts
         """
-        return status_base.get_text()
+        return self.crimes_base.get_text()
 
     @property
     def corpus(self):

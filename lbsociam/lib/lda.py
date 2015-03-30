@@ -90,12 +90,10 @@ def crime_topics(
 
 
 @cache_region('long_term')
-def get_category(
-        status,
-        status_base,
-        crimes_base,
-        n_topics=4
-):
+def get_category(status,
+                 status_base,
+                 crimes_base,
+                 n_topics=4):
     t0 = time.clock()
     c = corpus.get_events_corpus()
     t1 = time.clock() - t0
