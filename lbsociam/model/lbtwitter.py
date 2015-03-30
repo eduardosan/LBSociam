@@ -7,7 +7,7 @@ import datetime
 import logging
 from lbsociam import encoders
 from lbsociam import LBSociam
-from lbsociam.model import lbstatus
+from lbsociam.model.lbstatus import Status
 from lbsociam.lib import srl, dictionary, location
 from liblightbase.lbutils import conv
 from liblightbase import lbrest
@@ -19,17 +19,14 @@ class Twitter(LBSociam):
     """
     Twitter operations
     """
-    def __init__(self, debug=False, term=None, status_base=None):
+    def __init__(self, status_base, debug=False, term=None):
         LBSociam.__init__(self)
         self.debug = debug
         self.term = term
         self.api = None
         self.hashtag = None
         self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
-        if status_base is None:
-            self.status_base = lbstatus.status_base
-        else:
-            self.status_base = status_base
+        self.status_base = status_base
 
     @property
     def api(self):
@@ -130,7 +127,7 @@ class Twitter(LBSociam):
         for elm in status_list:
             status_json = self.status_to_json([elm])
 
-            status = lbstatus.Status(
+            status = Status(
                 origin='twitter',
                 inclusion_date=datetime.datetime.now(),
                 inclusion_datetime=datetime.datetime.now(),
@@ -144,13 +141,16 @@ class Twitter(LBSociam):
 
             if retorno is None:
                 log.error("Error inserting status %s on Base" % elm.text)
-            elif tokenize:
-                status_dict = conv.document2dict(self.status_base.lbbase, status)
 
-                # Manually add id_doc
-                status_dict['_metadata'] = dict()
-                status_dict['_metadata']['id_doc'] = retorno
+                return None
 
+            status_dict = conv.document2dict(self.status_base.lbbase, status)
+
+            # Manually add id_doc
+            status_dict['_metadata'] = dict()
+            status_dict['_metadata']['id_doc'] = retorno
+
+            if tokenize:
                 # SRL tokenize
                 tokenized = srl.srl_tokenize(status_dict['text'])
                 if tokenized.get('arg_structures') is not None:
@@ -158,21 +158,20 @@ class Twitter(LBSociam):
                 if tokenized.get('tokens') is not None:
                     status_dict['tokens'] = tokenized.get('tokens')
 
-                # Now try to find location
-                status_dict = location.get_location(status_dict)
+            # Now try to find location
+            status_dict = location.get_location(status_dict)
 
-                # Update status with new tokenized structure
-                self.status_base.documentrest.update(retorno, json.dumps(status_dict))
+            # Process tokens if selected
+            result = dictionary.process_tokens_dict(status_dict)
+            log.debug("Corpus da tokenização calculado. id_doc = %s", retorno)
 
-                # Process tokens if selected
-                rest_url = status.status_base.documentrest.rest_url
-                rest_url += "/" + status.status_base.lbbase._metadata.name + "/doc/"
-                rest_url += str(retorno)
-                params = {
-                    'status_id': retorno,
-                    'rest_url': rest_url
-                }
-                result = dictionary.process_tokens(params)
-                log.debug("Corpus da tokenização calculado. id_doc = %s", retorno)
+            # Extract hashtags
+            self.status_base.process_hashtags_dict(status_dict)
+
+            # Calculate category
+            status_dict = status.get_category(status_dict)
+
+            # Now update document back
+            self.status_base.documentrest.update(retorno, json.dumps(status_dict))
 
         return retorno

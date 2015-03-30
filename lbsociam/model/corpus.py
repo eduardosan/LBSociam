@@ -3,11 +3,9 @@
 __author__ = 'eduardo'
 
 import logging
-import requests
 from .lbstatus import status_base
 from .crimes import crimes_base
 from gensim.corpora import dictionary
-from liblightbase.lbsearch.search import *
 
 log = logging.getLogger()
 

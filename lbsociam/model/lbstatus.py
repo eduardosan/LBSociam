@@ -8,7 +8,7 @@ import sys
 import json
 from requests.exceptions import HTTPError
 from lbsociam import LBSociam
-from lbsociam.lib import srl, dictionary, location
+from lbsociam.lib import srl, dictionary, location, lda
 from liblightbase import lbrest
 from liblightbase.lbutils import conv
 from liblightbase.lbbase.struct import Base, BaseMetadata
@@ -16,6 +16,7 @@ from liblightbase.lbbase.lbstruct.group import *
 from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
 from liblightbase.lbsearch.search import *
+from ..model import crimes
 
 log = logging.getLogger()
 
@@ -39,6 +40,7 @@ class StatusBase(LBSociam):
             base=self.lbbase,
             response_object=False
         )
+        self.crimes_base = crimes.crimes_base
 
     def __iter__(self):
         """
@@ -315,6 +317,45 @@ class StatusBase(LBSociam):
             content=location_list
         )
 
+        # Category
+        category_list = Content()
+
+        category_id_doc = Field(**dict(
+            name='category_id_doc',
+            alias='Category ID',
+            description='id_doc for category in category base',
+            datatype='Integer',
+            indices=['Ordenado'],
+            multivalued=False,
+            required=False
+        ))
+
+        category_list.append(category_id_doc)
+
+        category_probability = Field(**dict(
+            name='category_probability',
+            alias='Category Probability',
+            description='Classification probability',
+            datatype='Decimal',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        category_list.append(category_probability)
+
+        category_metadata = GroupMetadata(**dict(
+            name='category_metadata',
+            alias='Category',
+            description='Category classification information',
+            multivalued=False
+        ))
+
+        category = Group(
+            metadata=category_metadata,
+            content=category_list
+        )
+
         base_metadata = BaseMetadata(**dict(
             name=self.status_base,
             description='Status from social networks',
@@ -342,6 +383,7 @@ class StatusBase(LBSociam):
         content_list.append(negatives)
         content_list.append(location)
         content_list.append(hashtags)
+        content_list.append(category)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -690,25 +732,7 @@ class StatusBase(LBSociam):
         status_dict['_metadata'] = dict()
         status_dict['_metadata']['id_doc'] = id_doc
 
-        # Get hashtags
-        source = json.loads(status_dict['source'])
-        status_dict['hashtags'] = list()
-        hashtags = source[0].get('hashtags')
-        for elm in hashtags:
-            if elm.get('text') is not None:
-                status_dict['hashtags'].append(elm['text'])
-
-        try:
-            self.documentrest.update(
-                status_dict['_metadata']['id_doc'],
-                json.dumps(status_dict)
-            )
-            # FIXME: Esse método só vai funcionar quando a liblightbase estiver ok
-            # status.update(id_doc=result._metadata.id_doc)
-        except:
-            exctype, value = sys.exc_info()[:2]
-            log.error("Error updating document id = %d\n%s" % (status_dict['_metadata']['id_doc'], value))
-            return False
+        return self.process_hashtags_dict(status_dict)
 
     def get_hashtags(self):
         """
@@ -737,6 +761,27 @@ class StatusBase(LBSociam):
 
         return collection
 
+    def process_hashtags_dict(self, status_dict):
+        # Get hashtags
+        source = json.loads(status_dict['source'])
+        status_dict['hashtags'] = list()
+        hashtags = source[0].get('hashtags')
+        for elm in hashtags:
+            if elm.get('text') is not None:
+                status_dict['hashtags'].append(elm['text'])
+
+        try:
+            self.documentrest.update(
+                status_dict['_metadata']['id_doc'],
+                json.dumps(status_dict)
+            )
+            # FIXME: Esse método só vai funcionar quando a liblightbase estiver ok
+            # status.update(id_doc=result._metadata.id_doc)
+        except:
+            exctype, value = sys.exc_info()[:2]
+            log.error("Error updating document id = %d\n%s" % (status_dict['_metadata']['id_doc'], value))
+            return False
+
 status_base = StatusBase()
 StatusClass = status_base.metaclass
 ArgStructures = status_base.arg_structures
@@ -758,6 +803,7 @@ class Status(StatusClass):
         #self.tokens = list()
         #self.arg_structures = list()
         self.status_base = status_base
+        self.crimes_base = crimes.crimes_base
 
     @property
     def inclusion_date(self):
@@ -882,3 +928,18 @@ class Status(StatusClass):
         document = self.status_to_json()
         # print(document)
         return self.status_base.documentrest.update(id=id_doc, document=document)
+
+    def get_category(self, status_dict=None):
+        """
+        Find category for this status
+        """
+        if status_dict is None:
+            self.status_to_dict()
+
+        category = lda.get_category(
+            status=status_dict,
+            status_base=self.status_base,
+            crimes_base=self.crimes_base
+        )
+
+        return category

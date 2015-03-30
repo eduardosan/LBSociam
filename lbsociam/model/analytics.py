@@ -76,6 +76,16 @@ class AnalyticsBase(LBSociam):
             multivalued=False,
             required=True
         ))
+
+        total_positives = Field(**dict(
+            name='total_positives',
+            description='Total positive status',
+            alias='total_positives',
+            datatype='Integer',
+            indices=['Ordenado'],
+            multivalued=False,
+            required=False
+        ))
         
         status_list = Content()
 
@@ -127,7 +137,6 @@ class AnalyticsBase(LBSociam):
             content=status_list
         )
 
-
         base_metadata = BaseMetadata(**dict(
             name='analytics',
             description='Criminal data analytics base',
@@ -145,6 +154,7 @@ class AnalyticsBase(LBSociam):
         content_list.append(total_status)
         content_list.append(total_crimes)
         content_list.append(status_crimes)
+        content_list.append(total_positives)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -168,7 +178,6 @@ class AnalyticsBase(LBSociam):
         """
         lbbase = self.lbbase
         response = self.baserest.create(lbbase)
-        #print(response.crimes_code)
         if response.status_code == 200:
             return lbbase
         else:
@@ -214,7 +223,6 @@ class AnalyticsBase(LBSociam):
         :return:
         """
         document = json.dumps(new_document)
-        #print(document)
         return self.documentrest.update(id=id_doc, document=document)
 
     def update_path(self, id_doc, path, value):
@@ -243,6 +251,66 @@ class AnalyticsBase(LBSociam):
         response.text = result
 
         return response
+
+    def process_response(self, status_dict, id_doc):
+        # Get actual analytics
+        entry_dict = self.get_document(id_doc)
+
+        # Manually add id_doc
+        entry_dict['_metadata'] = dict()
+        entry_dict['_metadata']['id_doc'] = id_doc
+
+        if status_dict is not None:
+            # Find out if there are more positives
+            positive = False
+            if status_dict.get('positives') is not None:
+                if status_dict.get('negatives') is not None:
+                    if status_dict['positives'] > status_dict['negatives']:
+                        positive = True
+                else:
+                    positive = True
+
+            # Now update total positives
+            if positive is True:
+                if entry_dict.get('total_positives') is None:
+                    entry_dict['total_positives'] = 0
+                total_positives = int(entry_dict['total_positives']) + 1
+                entry_dict['total_positives'] = total_positives
+
+            # Now update total
+            if entry_dict.get('total_crimes') is None:
+                entry_dict['total_crimes'] = 0
+
+            total_crimes = int(entry_dict['total_crimes']) + 1
+            entry_dict['total_crimes'] = total_crimes
+
+            if entry_dict.get('status_crimes') is None:
+                entry_dict['status_crimes'] = []
+
+            entry_dict['status_crimes'].append({
+                'status_id_doc': status_dict['_metadata']['id_doc'],
+                'status_positives': status_dict.get('positives'),
+                'status_negatives': status_dict.get('negatives')
+            })
+
+        # Now update total
+        if entry_dict.get('total_status') is None:
+            entry_dict['total_status'] = 0
+        total_status = int(entry_dict['total_status']) + 1
+        entry_dict['total_status'] = total_status
+
+        try:
+            result = self.update_document(id_doc, entry_dict)
+        except HTTPError as e:
+            log.error("Error updating status\n%s", e.message)
+            result = None
+
+        if result is None:
+            log.error("Error updating total status positives and negatives")
+
+        log.info("Processing finished %s", result)
+
+        return True
 
 analytics_base = AnalyticsBase()
 

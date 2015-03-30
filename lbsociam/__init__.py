@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 import os
 from config import load_config
+from beaker.cache import CacheManager
+from beaker.util import parse_cache_config_options
 
 
 class LBSociam(object):
@@ -32,3 +34,14 @@ class LBSociam(object):
         self.status_base = config.get('lbsociam', 'status_base')
         self.dictionary_base = config.get('lbsociam', 'dictionary_base')
         self.gmaps_api_key = config.get('maps', 'api_key')
+
+        # Cache configurations
+        cache_opts = {
+            'cache.regions': config.get('lbsociam', 'cache.regions'),
+            'cache.type': config.get('lbsociam', 'cache.type'),
+            'cache.short_term.expire': config.get('lbsociam', 'cache.short_term.expire'),
+            'cache.default_term.expire': config.get('lbsociam', 'cache.default_term.expire'),
+            'cache.long_term.expire': config.get('lbsociam', 'cache.long_term.expire')
+        }
+
+        self.cache = CacheManager(**parse_cache_config_options(cache_opts))

@@ -4,6 +4,7 @@ __author__ = 'eduardo'
 
 import logging
 import datetime
+import time
 from paste.script import command
 from lbsociam.model import analytics
 from liblightbase.lbbase.struct import Base
@@ -14,6 +15,7 @@ from lbsociam import LBSociam
 from multiprocessing import Queue, Process
 from lbsociam.model import analytics
 from requests.exceptions import HTTPError
+from requests.exceptions import ConnectionError
 
 log = logging.getLogger()
 
@@ -154,45 +156,15 @@ class AnalyticsCommands(command.Command):
         for i in range(len(id_document_list)):
             status_dict = done_queue.get()
 
-            # Get actual analytics
-            entry_dict = self.analytics_base.get_document(self.id_doc)
-
-            # Manually add id_doc
-            entry_dict['_metadata'] = dict()
-            entry_dict['_metadata']['id_doc'] = self.id_doc
-
-            if status_dict is not None:
-                # Now update total
-                if entry_dict.get('total_crimes') is None:
-                    entry_dict['total_crimes'] = 0
-
-                total_crimes = int(entry_dict['total_crimes']) + 1
-                entry_dict['total_crimes'] = total_crimes
-
-                if entry_dict.get('status_crimes') is None:
-                    entry_dict['status_crimes'] = []
-
-                entry_dict['status_crimes'].append({
-                    'status_id_doc': status_dict['_metadata']['id_doc'],
-                    'status_positives': status_dict.get('positives'),
-                    'status_negatives': status_dict.get('negatives')
-                })
-
-            # Now update total
-            if entry_dict.get('total_status') is None:
-                entry_dict['total_status'] = 0
-            total_status = int(entry_dict['total_status']) + 1
-            entry_dict['total_status'] = total_status
-
+            # Add retry loop if connection errors
             try:
-                result = self.analytics_base.update_document(self.id_doc, entry_dict)
-            except HTTPError as e:
-                log.error("Error updating status\n%s", e.message)
-
-            if result is None:
-                log.error("Error updating total status positives and negatives")
-
-            log.info("Processing finished %s", result)
+                self.analytics_base.process_response(status_dict=status_dict, id_doc=self.id_doc)
+                retry = False
+            except ConnectionError as e:
+                log.error("CONNECTION ERROR: connection error on %s\n%s", self.id_doc, e.message)
+                # Wait one second and retry
+                time.sleep(1)
+                self.analytics_base.process_response(status_dict=status_dict, id_doc=self.id_doc)
 
         # Tell child processes to stop
         for i in range(processes):
@@ -213,7 +185,12 @@ class AnalyticsCommands(command.Command):
         :param status_id_doc: Status id_doc
         :return: True or False
         """
-        result = self.status_base.get_document(status_id_doc)
+        try:
+            result = self.status_base.get_document(status_id_doc)
+        except ConnectionError as e:
+            log.error("CONNECTION ERROR: Error processing %s\n%s", status_id_doc, e.message)
+            time.sleep(1)
+            result = self.status_base.get_document(status_id_doc)
 
         # JSON
         status_dict = conv.document2dict(self.status_base.lbbase, result)
@@ -221,14 +198,10 @@ class AnalyticsCommands(command.Command):
         status_dict['_metadata'] = dict()
         status_dict['_metadata']['id_doc'] = status_id_doc
 
-        # Add status to analytics if positives apre bigger than negatives
+        # Add status to analytics if positives are bigger than negatives
         update = False
-        if status_dict.get('positives') is not None:
-            if status_dict.get('negatives') is not None:
-                if status_dict['positives'] > status_dict['negatives']:
-                    update = True
-            else:
-                update = True
+        if status_dict.get('positives') is not None or status_dict.get('negatives') is not None:
+            update = True
 
         if update:
             return status_dict

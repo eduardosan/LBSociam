@@ -5,6 +5,13 @@ max_size = 4096
 status_base = status
 dictionary_base = dictionary
 
+# Beaker cache
+cache.regions = default_term, short_term, long_term
+cache.type = memory
+cache.short_term.expire = 60
+cache.default_term.expire = 300
+cache.long_term.expire = 3600
+
 [nltk]
 data_dir = /srv/lbsociam-py2/nltk_data
 

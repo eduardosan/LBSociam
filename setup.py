@@ -14,7 +14,8 @@ requires = [
     'oauthlib',
     'PasteScript',
     'gensim',
-    'googlemaps'
+    'googlemaps',
+    'beaker'
     ]
 
 

@@ -97,11 +97,16 @@ class TwitterCommands(command.Command):
         """
         super(TwitterCommands, self).__init__(name)
 
-        # self.lbs = lbsociam.LBSociam()
-        # self.baserest = lbrest.BaseREST(rest_url=self.lbs.lbgenerator_rest_url, response_object=True)
-        self.lbt = lbtwitter.Twitter(debug=False, term='crime')
+        # Set base to production
+        self.status_base.status_base = 'status'
+        self.status_base.dictionary_base = 'dictionary'
+
+        self.lbt = lbtwitter.Twitter(
+            debug=False,
+            term='crime',
+            status_base=self.status_base
+        )
         self.status_base = lbstatus.StatusBase()
-        # self.tw_status = self.lbt.search()
 
     def command(self):
         """

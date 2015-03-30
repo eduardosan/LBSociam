@@ -232,37 +232,14 @@ def insert_from_status(lbstatus, outfile=None):
     return True
 
 
-def process_tokens(params):
-    """
-    Process the documents
-    :return: Dictionary object
-    """
-    # lbstatus = StatusBase()
-    # Now return all the documents collection and parse it
+def process_tokens_dict(status_dict):
     dic = corpora.Dictionary()
     stemmer = nltk.stem.RSLPStemmer()
 
-    # result = lbstatus.get_document(params['status_id'])
-
-    # Try to find doc
-    try:
-        response = requests.get(
-            url=params['rest_url']
-        )
-    except ConnectionError as e:
-        log.error("Connection error trying to get document id = %s\n%s", params['status_id'], e.message)
-        return None
-
-    if response.status_code != 200:
-        log.error("Error trying to get document id = %s", params['status_id'])
-        return None
-
-    result = response.json()
-
-    if result.get('tokens') is not None:
+    if status_dict.get('tokens') is not None:
             # Search for the events as argument
             tokens = list()
-            for structure in result.get('arg_structures'):
+            for structure in status_dict.get('arg_structures'):
                 for argument in structure.get('argument'):
                     argument_name = argument['argument_name']
                     log.debug("Looking for string as argument in argument_name = %s", argument_name)
@@ -282,19 +259,19 @@ def process_tokens(params):
                                 id_doc = dic_elm.get_id_doc()
                                 if id_doc is None:
                                     dic_elm.frequency = 1
-                                    dic_elm.status_list = [params['status_id']]
+                                    dic_elm.status_list = [status_dict['_metadata']['id_doc']]
                                     document = dic_elm.create_dictionary()
                                 else:
                                     # Try to update frequency
                                     try:
-                                        if params['status_id'] not in dic_elm.status_list:
+                                        if status_dict['_metadata']['id_doc'] not in dic_elm.status_list:
                                             dic_elm.frequency += 1
                                             #dic_elm.status_list = [id_doc]
-                                            dic_elm.status_list.append(params['status_id'])
+                                            dic_elm.status_list.append(status_dict['_metadata']['id_doc'])
                                     except AttributeError:
                                         # No frequency yet
                                         dic_elm.frequency = 1
-                                        dic_elm.status_list = [params['status_id']]
+                                        dic_elm.status_list = [status_dict['_metadata']['id_doc']]
                                     document = dic_elm.update(id_doc)
                                     log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
 
@@ -303,14 +280,14 @@ def process_tokens(params):
                                 log.debug("Invalid tokens in %s", elm)
 
             # Add tokens back to status object
-            result['events_tokens'] = tokens
+            status_dict['events_tokens'] = tokens
 
             dic.add_documents([tokens])
     else:
-        log.error("Tokens não encontrados para o documento %s", params['status_id'])
+        log.error("Tokens não encontrados para o documento %s", status_dict['_metadata']['id_doc'])
 
     # Add search term on dictionary
-    elm = result['search_term']
+    elm = status_dict['search_term']
     stem = stemmer.stem(elm)
     dic_elm = dictionary.Dictionary(
         token=elm,
@@ -319,26 +296,51 @@ def process_tokens(params):
     id_doc = dic_elm.get_id_doc()
     if id_doc is None:
         dic_elm.frequency = 1
-        dic_elm.status_list = [params['status_id']]
+        dic_elm.status_list = [status_dict['_metadata']['id_doc']]
         document = dic_elm.create_dictionary()
     else:
         # Try to update frequency
         try:
-            if params['status_id'] not in dic_elm.status_list:
+            if status_dict['_metadata']['id_doc'] not in dic_elm.status_list:
                 dic_elm.frequency += 1
                 #dic_elm.status_list = [id_doc]
-                dic_elm.status_list.append(params['status_id'])
+                dic_elm.status_list.append(status_dict['_metadata']['id_doc'])
         except AttributeError:
             # No frequency yet
             dic_elm.frequency = 1
-            dic_elm.status_list = [params['status_id']]
+            dic_elm.status_list = [status_dict['_metadata']['id_doc']]
         document = dic_elm.update(id_doc)
         log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
 
     return {
         'dic': dic,
-        'status': result
+        'status': status_dict
     }
+
+
+def process_tokens(params):
+    """
+    Process the documents
+    :return: Dictionary object
+    """
+    # Try to find doc
+    try:
+        response = requests.get(
+            url=params['rest_url']
+        )
+    except ConnectionError as e:
+        log.error("Connection error trying to get document id = %s\n%s", params['status_id'], e.message)
+        return None
+
+    if response.status_code != 200:
+        log.error("Error trying to get document id = %s", params['status_id'])
+        return None
+
+    result = response.json()
+
+    response = process_tokens_dict(result)
+
+    return response
 
 
 # Function run by worker processes
