@@ -12,41 +12,39 @@ log = logging.getLogger()
 
 
 @cache_region('long_term')
-def get_lda(corpus, n_topics=4):
+def get_lda(c, n_topics=4):
     """
     Get LDA model
     :param n_topics: Number of topics to use in model
-    :param corpus: Corpus object
+    :param c: Corpus object
     :return: LDA model
     """
-    lda = ldamodel.LdaModel(corpus.corpus, id2word=corpus.dic, num_topics=n_topics)
+    lda = ldamodel.LdaModel(c.corpus, id2word=c.dic, num_topics=n_topics)
     return lda
 
 
 @cache_region('long_term')
 def crime_topics(
         crimes_base,
-        status_base=None,
+        status_base,
         n_topics=4):
     """
     Generate crime topics
     :return: dict with term frequency calculated by LDA
     """
     t0 = time.clock()
-    c = corpus.get_events_corpus()
+    c = corpus.get_events_corpus(status_base)
     t1 = time.clock() - t0
     log.debug("Time to generate Corpus: %s seconds", t1)
 
     t0 = time.clock()
-    lda = get_lda(n_topics, c)
+    lda = get_lda(c, n_topics)
     t1 = time.clock() - t0
     log.debug("Time to generate LDA Model for %s topics: %s seconds", n_topics, t1)
 
     topics_list = lda.show_topics(num_topics=n_topics, formatted=False)
-    total_status = None
-    if status_base is not None:
-        base_info = status_base.get_base()
-        total_status = int(base_info['result_count'])
+    base_info = status_base.get_base()
+    total_status = int(base_info['result_count'])
 
     saida = dict()
     i = 0
@@ -95,12 +93,12 @@ def get_category(status,
                  crimes_base,
                  n_topics=4):
     t0 = time.clock()
-    c = corpus.get_events_corpus()
+    c = corpus.get_events_corpus(status_base)
     t1 = time.clock() - t0
     log.debug("Time to generate Corpus: %s seconds", t1)
 
     t0 = time.clock()
-    lda = get_lda(n_topics, c)
+    lda = get_lda(c, n_topics)
     t1 = time.clock() - t0
     log.debug("Time to generate LDA Model for %s topics: %s seconds", n_topics, t1)
 
@@ -111,9 +109,9 @@ def get_category(status,
 
     # Get categories
     category_list = get_category(
-        status_base=status_base,
-        crimes_base=crimes_base,
-        n_topics=n_topics
+        status_base,
+        crimes_base,
+        n_topics
     )
 
     # This will the topic with highest probability

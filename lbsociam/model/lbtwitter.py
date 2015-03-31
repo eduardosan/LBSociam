@@ -134,7 +134,7 @@ class Twitter(LBSociam):
                 search_term=self.term,
                 text=elm.text,
                 source=status_json,
-                status_base=self.status_base
+                base=self.status_base
             )
 
             retorno = status.create_status()

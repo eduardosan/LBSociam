@@ -234,7 +234,7 @@ def insert_from_status(lbstatus, outfile=None):
     return True
 
 
-def process_tokens_dict(status_dict):
+def process_tokens_dict(status_dict, dictionary_base):
     dic = corpora.Dictionary()
     stemmer = nltk.stem.RSLPStemmer()
 
@@ -256,7 +256,8 @@ def process_tokens_dict(status_dict):
                                 stem = stemmer.stem(elm)
                                 dic_elm = dictionary.Dictionary(
                                     token=elm,
-                                    stem=stem
+                                    stem=stem,
+                                    dictionary_base=dictionary_base
                                 )
                                 id_doc = dic_elm.get_id_doc()
                                 if id_doc is None:

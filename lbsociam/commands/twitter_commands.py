@@ -98,9 +98,10 @@ class TwitterCommands(command.Command):
         super(TwitterCommands, self).__init__(name)
 
         # Set base to production
-        self.status_base = lbstatus.StatusBase()
-        self.status_base.status_base = 'status'
-        self.status_base.dictionary_base = 'dictionary'
+        self.status_base = lbstatus.StatusBase(
+            status_name='status',
+            dic_name='dictionary'
+        )
 
         self.lbt = lbtwitter.Twitter(
             debug=False,

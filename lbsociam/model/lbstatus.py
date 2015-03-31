@@ -25,12 +25,20 @@ class StatusBase(LBSociam):
     """
     Base class to social networks status
     """
-    def __init__(self):
+    def __init__(self,
+                 status_name=None,
+                 dic_name=None):
         """
-        Construct for social networks data
+        Bulding method for Status Base
+        :param status_name: Name of status base
+        :param dic_name: Name of dict status
         :return:
         """
         LBSociam.__init__(self)
+        if status_name is not None:
+            self.status_base = status_name
+        if dic_name is not None:
+            self.dictionary_base = dic_name
         self.baserest = lbrest.BaseREST(
             rest_url=self.lbgenerator_rest_url,
             response_object=True
@@ -421,7 +429,6 @@ class StatusBase(LBSociam):
         """
         lbbase = self.lbbase
         response = self.baserest.create(lbbase)
-        #print(response.status_code)
         if response.status_code == 200:
             return lbbase
         else:
@@ -782,6 +789,33 @@ class StatusBase(LBSociam):
             log.error("Error updating document id = %d\n%s" % (status_dict['_metadata']['id_doc'], value))
             return False
 
+    def search_equal(self, source, limit=1):
+        """
+        Search status by content
+        """
+        orderby = OrderBy(['id_oc'])
+        search = Search(
+            limit=limit,
+            order_by=orderby,
+            literal="document->>'source' = '" + source + "'",
+        )
+        params = {
+            '$$': search._asjson()
+        }
+
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc'
+        result = requests.get(
+            url=url,
+            params=params
+        )
+        results = result.json()
+        if results['result_count'] == 0:
+            return None
+
+        response = results['results'][0]
+
+        return response
+
 status_base = StatusBase()
 StatusClass = status_base.metaclass
 ArgStructures = status_base.arg_structures
@@ -792,7 +826,7 @@ class Status(StatusClass):
     """
     Class to hold status elements
     """
-    def __init__(self, **args):
+    def __init__(self, base=None, **args):
         """
         Construct for social networks data
         :return:
@@ -802,7 +836,10 @@ class Status(StatusClass):
         # These have to be null
         #self.tokens = list()
         #self.arg_structures = list()
-        self.status_base = status_base
+        if base is None:
+            self.status_base = status_base
+        else:
+            self.status_base = base
         self.crimes_base = crimes.crimes_base
 
     @property
@@ -906,7 +943,6 @@ class Status(StatusClass):
     def create_status(self):
         """
         Insert document on base
-        :param unique: If it is unique, sent this option as true
         :return: Document creation status
         """
         document = self.status_to_json()
@@ -914,7 +950,10 @@ class Status(StatusClass):
             result = self.status_base.documentrest.create(document)
         except HTTPError, err:
             log.error(err.strerror)
-            return None
+
+            # Try to search document with same source
+            result = self.status_base.search_equal(self.source)
+            return result
 
         return result
 
@@ -937,9 +976,9 @@ class Status(StatusClass):
             self.status_to_dict()
 
         category = lda.get_category(
-            status=status_dict,
-            status_base=self.status_base,
-            crimes_base=self.crimes_base
+            status_dict,
+            self.status_base,
+            self.crimes_base
         )
 
         return category

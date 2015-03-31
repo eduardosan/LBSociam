@@ -9,6 +9,8 @@ import nlpnet
 import ConfigParser
 import logging
 import logging.config
+from beaker.cache import CacheManager
+from beaker.util import parse_cache_config_options
 
 environment = 'development'
 
@@ -31,5 +33,16 @@ def load_config():
 
     # Logging
     logging.config.fileConfig(config_file)
+
+    # Cache configurations
+    cache_opts = {
+        'cache.regions': config.get('lbsociam', 'cache.regions'),
+        'cache.type': config.get('lbsociam', 'cache.type'),
+        'cache.short_term.expire': config.get('lbsociam', 'cache.short_term.expire'),
+        'cache.default_term.expire': config.get('lbsociam', 'cache.default_term.expire'),
+        'cache.long_term.expire': config.get('lbsociam', 'cache.long_term.expire')
+    }
+
+    cache = CacheManager(**parse_cache_config_options(cache_opts))
 
     return config
