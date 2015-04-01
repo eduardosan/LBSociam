@@ -19,14 +19,21 @@ class Twitter(LBSociam):
     """
     Twitter operations
     """
-    def __init__(self, status_base, debug=False, term=None):
+    def __init__(self,
+                 status_base=None,
+                 dictionary_base=None,
+                 debug=False,
+                 term=None):
         LBSociam.__init__(self)
         self.debug = debug
         self.term = term
         self.api = None
         self.hashtag = None
         self.baserest = lbrest.BaseREST(rest_url=self.lbgenerator_rest_url, response_object=True)
-        self.status_base = status_base
+        if status_base is not None:
+            self.status_base = status_base
+        if dictionary_base is not None:
+            self.dictionary_base = dictionary_base
 
     @property
     def api(self):
@@ -162,7 +169,7 @@ class Twitter(LBSociam):
             status_dict = location.get_location(status_dict)
 
             # Process tokens if selected
-            result = dictionary.process_tokens_dict(status_dict)
+            result = dictionary.process_tokens_dict(status_dict, self.dictionary_base)
             log.debug("Corpus da tokenização calculado. id_doc = %s", retorno)
 
             # Extract hashtags

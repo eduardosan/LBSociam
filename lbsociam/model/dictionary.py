@@ -266,13 +266,18 @@ class Dictionary(dictionary_base.metaclass):
     """
     Classe que armazena eventos de crime
     """
-    def __init__(self, **args):
+    def __init__(self, dic_base=None, **args):
         """
         Construct for social networks data
         :return:
         """
         super(Dictionary, self).__init__(**args)
-        self.dictionary_base = dictionary_base
+        if dic_base is not None:
+            log.debug("111111111111111111111111111111111")
+            dictionary_base.lbbase.metadata.name = dic_base
+            self.dictionary_base = dictionary_base
+        else:
+            self.dictionary_base = dictionary_base
 
     def dictionary_to_dict(self):
         """

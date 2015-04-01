@@ -257,7 +257,7 @@ def process_tokens_dict(status_dict, dictionary_base):
                                 dic_elm = dictionary.Dictionary(
                                     token=elm,
                                     stem=stem,
-                                    dictionary_base=dictionary_base
+                                    dic_base=dictionary_base
                                 )
                                 id_doc = dic_elm.get_id_doc()
                                 if id_doc is None:
@@ -269,7 +269,6 @@ def process_tokens_dict(status_dict, dictionary_base):
                                     try:
                                         if status_dict['_metadata']['id_doc'] not in dic_elm.status_list:
                                             dic_elm.frequency += 1
-                                            #dic_elm.status_list = [id_doc]
                                             dic_elm.status_list.append(status_dict['_metadata']['id_doc'])
                                     except AttributeError:
                                         # No frequency yet
@@ -294,7 +293,8 @@ def process_tokens_dict(status_dict, dictionary_base):
     stem = stemmer.stem(elm)
     dic_elm = dictionary.Dictionary(
         token=elm,
-        stem=stem
+        stem=stem,
+        dic=dictionary_base
     )
     id_doc = dic_elm.get_id_doc()
     if id_doc is None:
