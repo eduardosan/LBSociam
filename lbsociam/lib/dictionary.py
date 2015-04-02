@@ -158,7 +158,9 @@ def create_from_status(lbstatus, outfile=None, offset=0):
             return dic
 
 
-def insert_from_status(lbstatus, outfile=None):
+def insert_from_status(lbstatus,
+                       dictionary_base=None,
+                       outfile=None):
     # try:
     #     assert isinstance(lbstatus, StatusBase)
     # except AssertionError as e:
@@ -170,7 +172,7 @@ def insert_from_status(lbstatus, outfile=None):
     processes = int(lbstatus.processes)
 
     # As we are reprocessing tokens, it is necessary to clear frequency
-    dic_base = dictionary.DictionaryBase()
+    dic_base = dictionary.DictionaryBase(dic_base=dictionary_base)
     dic_base.remove_base()
     dic_base.create_base()
 
@@ -294,7 +296,7 @@ def process_tokens_dict(status_dict, dictionary_base):
     dic_elm = dictionary.Dictionary(
         token=elm,
         stem=stem,
-        dic=dictionary_base
+        dic_base=dictionary_base
     )
     id_doc = dic_elm.get_id_doc()
     if id_doc is None:

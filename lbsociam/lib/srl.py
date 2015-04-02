@@ -36,9 +36,7 @@ def srl_tokenize(text):
         # Cria elementos de SRL
         for predicate, argument in elm.arg_structures:
             argument_list = list()
-            #print(argument)
             for argument_name in argument.keys():
-                #print(argument_list)
                 argument_dict = dict(
                     argument_name=argument_name,
                     argument_value=argument[argument_name]

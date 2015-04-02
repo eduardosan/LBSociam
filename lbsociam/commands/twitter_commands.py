@@ -11,6 +11,7 @@ from paste.script import command
 from liblightbase import lbrest
 from lbsociam.model import lbtwitter
 from lbsociam.model import lbstatus
+from lbsociam.model import dictionary as dicbase
 from liblightbase.lbbase.struct import Base
 from liblightbase.lbsearch.search import *
 from liblightbase.lbutils import conv
@@ -103,10 +104,15 @@ class TwitterCommands(command.Command):
             dic_name='dictionary'
         )
 
+        self.dictionary_base = dicbase.DictionaryBase(
+            dic_base='dictionary'
+        )
+
         self.lbt = lbtwitter.Twitter(
             debug=False,
             term='crime',
-            status_base=self.status_base
+            status_base=self.status_base,
+            dictionary_base=self.dictionary_base
         )
 
     def command(self):
@@ -254,7 +260,6 @@ class TwitterCommands(command.Command):
         id_document_list = self.status_base.get_document_ids(offset=offset)
 
         for id_doc in id_document_list:
-            # log.debug("1111111111111111111111111111111111111111111\n%s", result._metadata)
             task_queue.put(id_doc)
 
         # if collection.result_count > (offset+processes):
@@ -324,7 +329,6 @@ class TwitterCommands(command.Command):
         id_document_list = self.status_base.get_document_ids(offset=offset)
 
         for id_doc in id_document_list:
-            # log.debug("1111111111111111111111111111111111111111111\n%s", result._metadata)
             task_queue.put(id_doc)
 
         # if collection.result_count > (offset+processes):

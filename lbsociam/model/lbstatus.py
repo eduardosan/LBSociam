@@ -353,7 +353,7 @@ class StatusBase(LBSociam):
         category_list.append(category_probability)
 
         category_metadata = GroupMetadata(**dict(
-            name='category_metadata',
+            name='category',
             alias='Category',
             description='Category classification information',
             multivalued=False
@@ -793,7 +793,7 @@ class StatusBase(LBSociam):
         """
         Search status by content
         """
-        orderby = OrderBy(['id_oc'])
+        orderby = OrderBy(['id_doc'])
         search = Search(
             limit=limit,
             order_by=orderby,
@@ -812,7 +812,7 @@ class StatusBase(LBSociam):
         if results['result_count'] == 0:
             return None
 
-        response = results['results'][0]
+        response = results['results'][0]['_metadata']['id_doc']
 
         return response
 

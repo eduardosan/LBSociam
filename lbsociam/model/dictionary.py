@@ -21,12 +21,16 @@ class DictionaryBase(LBSociam):
     """
     Criminal data base
     """
-    def __init__(self):
+    def __init__(self, dic_base=None):
         """
         Construct for social networks data
         :return:
         """
         LBSociam.__init__(self)
+
+        if dic_base is not None:
+            self.dictionary_base = dic_base
+
         self.baserest = lbrest.BaseREST(
             rest_url=self.lbgenerator_rest_url,
             response_object=True
@@ -125,7 +129,6 @@ class DictionaryBase(LBSociam):
         """
         lbbase = self.lbbase
         response = self.baserest.create(lbbase)
-        #print(response.Dictionary_code)
         if response.status_code == 200:
             return lbbase
         else:
@@ -273,9 +276,7 @@ class Dictionary(dictionary_base.metaclass):
         """
         super(Dictionary, self).__init__(**args)
         if dic_base is not None:
-            log.debug("111111111111111111111111111111111")
-            dictionary_base.lbbase.metadata.name = dic_base
-            self.dictionary_base = dictionary_base
+            self.dictionary_base = dic_base
         else:
             self.dictionary_base = dictionary_base
 

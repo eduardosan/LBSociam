@@ -25,8 +25,8 @@ def get_lda(c, n_topics=4):
 
 @cache_region('long_term')
 def crime_topics(
-        crimes_base,
         status_base,
+        crimes_base,
         n_topics=4):
     """
     Generate crime topics
@@ -75,6 +75,8 @@ def crime_topics(
             # Get category if we didn't find it yet
             if saida[i].get('category') is None:
                 category = crimes_base.get_token_by_name(word)
+                if category is None:
+                    continue
                 if category['category_name'] not in found_categories:
                     found_categories.append(category['category_name'])
                     saida[i]['category'] = crimes_base.get_token_by_name(word)
@@ -108,7 +110,7 @@ def get_category(status,
     sorted_vec_lda = sorted(vec_lda, key=operator.itemgetter(1), reverse=True)
 
     # Get categories
-    category_list = get_category(
+    category_list = crime_topics(
         status_base,
         crimes_base,
         n_topics
@@ -120,7 +122,7 @@ def get_category(status,
 
     # Add this category back to status
     status['category'] = {
-        'category_id_doc': category['_metadata']['id_doc'],
+        'category_id_doc': category['category']['_metadata']['id_doc'],
         'category_probability': sorted_vec_lda[0][1]
     }
 

@@ -82,7 +82,41 @@ def get_location(status, cache=True):
 
                 return status
 
-    # Try to consider user location
+    # Focus: use SRL to find location
+    for structure in status['arg_structures']:
+        for argument in structure['argument']:
+            argument_name = argument['argument_name']
+            log.debug("LOCATION: search in argument_name = %s", argument_name)
+
+            if re.match('.*-LOC', argument_name) is not None:
+                # Convert list os values to string
+                location = " ".join(argument['argument_value'])
+                log.debug("LOCATION: string match for argument_name = %s. Location = %s", argument_name, location)
+                # Try to use cache first
+                if cache:
+                    result = location_base.get_location(location)
+                    if result is None:
+                        result = maps_search(location)
+                        if result is not None:
+                            # This is the string used on search
+                            result['city'] = location
+                            id_doc = location_base.add_location(result)
+                            log.debug("New location stored. id_doc = %s", id_doc)
+                            status['location']['id_location'] = id_doc
+                else:
+                    result = maps_search(argument['argument_value'])
+
+                if result is not None:
+                    status['location']['latitude'] = result['latitude']
+                    status['location']['longitude'] = result['longitude']
+                    status['location']['city'] = result['location_name']
+
+                    # Register source
+                    status['location']['loc_origin'] = 'srl'
+
+                    return status
+
+    # Last try: consider user location
     user = source.get('_user')
     if user is not None:
         geo = user.get('_geo')
@@ -134,40 +168,6 @@ def get_location(status, cache=True):
 
                     # Register source
                     status['location']['loc_origin'] = 'user_location'
-
-                    return status
-
-    # Last try: use SRL to find location
-    for structure in status['arg_structures']:
-        for argument in structure['argument']:
-            argument_name = argument['argument_name']
-            log.debug("LOCATION: search in argument_name = %s", argument_name)
-
-            if re.match('.*-LOC', argument_name) is not None:
-                # Convert list os values to string
-                location = " ".join(argument['argument_value'])
-                log.debug("LOCATION: string match for argument_name = %s. Location = %s", argument_name, location)
-                # Try to use cache first
-                if cache:
-                    result = location_base.get_location(location)
-                    if result is None:
-                        result = maps_search(location)
-                        if result is not None:
-                            # This is the string used on search
-                            result['city'] = location
-                            id_doc = location_base.add_location(result)
-                            log.debug("New location stored. id_doc = %s", id_doc)
-                            status['location']['id_location'] = id_doc
-                else:
-                    result = maps_search(argument['argument_value'])
-
-                if result is not None:
-                    status['location']['latitude'] = result['latitude']
-                    status['location']['longitude'] = result['longitude']
-                    status['location']['city'] = result['location_name']
-
-                    # Register source
-                    status['location']['loc_origin'] = 'srl'
 
                     return status
 

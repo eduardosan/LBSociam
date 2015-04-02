@@ -149,7 +149,7 @@ class Twitter(LBSociam):
             if retorno is None:
                 log.error("Error inserting status %s on Base" % elm.text)
 
-                return None
+                continue
 
             status_dict = conv.document2dict(self.status_base.lbbase, status)
 
