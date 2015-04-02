@@ -1,7 +1,6 @@
 #!/usr/env python
 # -*- coding: utf-8 -*-
 __author__ = 'eduardo'
-
 import logging
 from gensim.corpora import dictionary
 

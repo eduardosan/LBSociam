@@ -864,6 +864,7 @@ class Status(StatusClass):
             value = datetime.datetime.strptime(value, "%d/%m/%Y").strftime("%d/%m/%Y")
 
         StatusClass.inclusion_date.__set__(self, value)
+
     @property
     def inclusion_datetime(self):
         """
@@ -975,9 +976,10 @@ class Status(StatusClass):
         if status_dict is None:
             self.status_to_dict()
 
+        # Use default status base to calculate LDA Model
         category = lda.get_category(
             status_dict,
-            self.status_base,
+            status_base,
             self.crimes_base
         )
 
