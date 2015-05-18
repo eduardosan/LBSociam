@@ -343,7 +343,7 @@ def process_tokens(params):
 
     result = response.json()
 
-    response = process_tokens_dict(result)
+    response = process_tokens_dict(result, params['dictionary_base'])
 
     return response
 

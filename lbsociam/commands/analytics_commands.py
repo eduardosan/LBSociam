@@ -121,6 +121,12 @@ class AnalyticsCommands(command.Command):
         return
 
     def create_analysis(self, offset=0):
+        """
+        Create analysis for the training bases calculating total positives and negatives
+
+        :param offset:
+        :return:
+        """
         task_queue = Queue()
         done_queue = Queue()
         processes = int(self.lbs.processes)

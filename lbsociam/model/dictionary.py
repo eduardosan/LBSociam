@@ -151,7 +151,7 @@ class DictionaryBase(LBSociam):
         Update base from LB Base
         """
         response = self.baserest.update(self.lbbase)
-        if response.Dictionary_code == 200:
+        if response.status_code == 200:
             return True
         else:
             raise IOError('Error updating LB Base structure')

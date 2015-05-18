@@ -287,11 +287,12 @@ class AnalyticsBase(LBSociam):
             if entry_dict.get('status_crimes') is None:
                 entry_dict['status_crimes'] = []
 
-            entry_dict['status_crimes'].append({
-                'status_id_doc': status_dict['_metadata']['id_doc'],
-                'status_positives': status_dict.get('positives'),
-                'status_negatives': status_dict.get('negatives')
-            })
+            # This is eating up all memory. Drop it
+            # entry_dict['status_crimes'].append({
+            #     'status_id_doc': status_dict['_metadata']['id_doc'],
+            #     'status_positives': status_dict.get('positives'),
+            #     'status_negatives': status_dict.get('negatives')
+            # })
 
         # Now update total
         if entry_dict.get('total_status') is None:

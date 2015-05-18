@@ -48,8 +48,13 @@ class DictionaryCommands(command.Command):
         :param name: Command name
         """
         super(DictionaryCommands, self).__init__(name)
-        self.dictionary_base = dictionary.DictionaryBase()
-        self.status_base = lbstatus.StatusBase()
+        self.dictionary_base = dictionary.DictionaryBase(
+            dic_base='dictionary'
+        )
+        self.status_base = lbstatus.StatusBase(
+            status_name='status',
+            dic_name='dictionary'
+        )
 
     def command(self):
         """

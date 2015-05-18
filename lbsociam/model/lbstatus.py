@@ -17,6 +17,7 @@ from liblightbase.lbbase.lbstruct.field import *
 from liblightbase.lbbase.content import Content
 from liblightbase.lbsearch.search import *
 from ..model import crimes
+from ..model import dictionary as dic
 
 log = logging.getLogger()
 
@@ -686,8 +687,7 @@ class StatusBase(LBSociam):
         status_dict = location.get_location(status_dict)
 
         # Get hashtags
-        source = json.loads(status_dict['source'])
-        status_dict['hashtags'] = source[0].get('hashtags')
+        status_dict = self.get_hashtags_dict(status_dict)
 
         # FIXME: Isso aqui precisa ser resolvido na liblightbase
         # Put status from base in LB Status Object
@@ -722,7 +722,8 @@ class StatusBase(LBSociam):
         rest_url += str(status_dict['_metadata']['id_doc'])
         params = {
             'status_id': status_dict['_metadata']['id_doc'],
-            'rest_url': rest_url
+            'rest_url': rest_url,
+            'dictionary_base': dic.DictionaryBase(dic_base=self.dictionary_base)
         }
         result = dictionary.process_tokens(params)
         log.debug("Corpus da tokenização calculado: id_doc = %s", status_dict['_metadata']['id_doc'])
@@ -768,7 +769,10 @@ class StatusBase(LBSociam):
 
         return collection
 
-    def process_hashtags_dict(self, status_dict):
+    def get_hashtags_dict(self, status_dict):
+        """
+        Get hashtags dict
+        """
         # Get hashtags
         source = json.loads(status_dict['source'])
         status_dict['hashtags'] = list()
@@ -776,6 +780,18 @@ class StatusBase(LBSociam):
         for elm in hashtags:
             if elm.get('text') is not None:
                 status_dict['hashtags'].append(elm['text'])
+
+        return status_dict
+
+    def process_hashtags_dict(self, status_dict_orig):
+        """
+        Process hashtags
+        """
+        status_dict = self.get_hashtags_dict(status_dict_orig)
+
+        if len(status_dict['hastags']) > 0:
+            # Don't update if there's no hashtags
+            return True
 
         try:
             self.documentrest.update(
