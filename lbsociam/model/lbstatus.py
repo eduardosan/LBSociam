@@ -695,6 +695,7 @@ class StatusBase(LBSociam):
         )
         result = dictionary.process_tokens_dict(status_dict, dictionary_base)
         log.debug("Corpus da tokenização calculado. id_doc = %s", id_doc)
+        status_dict = result['status']
 
         # Extract hashtags
         status_dict = self.get_hashtags_dict(status_dict)

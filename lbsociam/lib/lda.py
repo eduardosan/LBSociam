@@ -35,12 +35,15 @@ def crime_topics(
     t0 = time.clock()
     c = corpus.get_events_corpus(status_base)
     t1 = time.clock() - t0
-    log.debug("Time to generate Corpus: %s seconds", t1)
+    log.debug("TOPICS: Time to generate Corpus for topics: %s seconds", t1)
 
     t0 = time.clock()
     lda = get_lda(c, n_topics)
     t1 = time.clock() - t0
-    log.debug("Time to generate LDA Model for %s topics: %s seconds", n_topics, t1)
+    log.debug("TOPICS: Time to generate LDA Model in base %s for %s topics: %s seconds",
+              status_base.lbbase.metadata.name,
+              n_topics,
+              t1)
 
     topics_list = lda.show_topics(num_topics=n_topics, formatted=False)
     base_info = status_base.get_base()
@@ -98,15 +101,22 @@ def get_category(status,
     t0 = time.clock()
     c = corpus.get_events_corpus(status_base)
     t1 = time.clock() - t0
-    log.debug("Time to generate Corpus: %s seconds", t1)
+    log.debug("CATEGORY: Time to generate Corpus: %s seconds", t1)
 
     t0 = time.clock()
     lda = get_lda(c, n_topics)
     t1 = time.clock() - t0
-    log.debug("Time to generate LDA Model for %s topics: %s seconds", n_topics, t1)
+    log.debug("CATEGORY: Time to generate LDA Model in base %s for %s topics: %s seconds",
+              status_base.lbbase.metadata.name,
+              n_topics,
+              t1)
 
     # Produce sorted list of probabilities
-    vec_bow = c.dic.doc2bow(status['events_tokens'])
+    if status.get('events_tokens') is not None:
+        vec_bow = c.dic.doc2bow(status['events_tokens'])
+    else:
+        # Use search term when it is not possible to use events tokens
+        vec_bow = c.dic.doc2bow([status['search_term']])
     vec_lda = lda[vec_bow]
     sorted_vec_lda = sorted(vec_lda, key=operator.itemgetter(1), reverse=True)
 
@@ -121,10 +131,13 @@ def get_category(status,
     category_index = sorted_vec_lda[0][0]
     category = category_list[category_index]
 
-    # Add this category back to status
-    status['category'] = {
-        'category_id_doc': category['category']['_metadata']['id_doc'],
-        'category_probability': sorted_vec_lda[0][1]
-    }
+    if category.get('category') is not None:
+        # Add this category back to status
+        status['category'] = {
+            'category_id_doc': category['category']['_metadata']['id_doc'],
+            'category_probability': sorted_vec_lda[0][1]
+        }
+    else:
+        status['category'] = {}
 
     return status

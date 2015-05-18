@@ -9,6 +9,7 @@ import requests
 import nltk
 import re
 import json
+import string
 from liblightbase.lbsearch.search import *
 from lbsociam.model import dictionary
 from gensim import corpora, models
@@ -23,11 +24,12 @@ def valid_word(word):
     """
     Apply processing to word and return valid word
     :return: True if it is valid or False if it is not
-        Ĩf a list is supplied, return a list of valid tokens or empty list
+        If a list is supplied, return a list of valid tokens or empty list
     """
     # Processing modules
     stopwords = set(nltk.corpus.stopwords.words('portuguese'))
     stopwords.update(['http', 'pro', 'https', 't.', 'co'])
+    table = string.maketrans("", "")
     loc = re.LOCALE
     if isinstance(loc, int):
         re.LOCALE = 4
@@ -42,6 +44,9 @@ def valid_word(word):
             if text not in stopwords and \
                     re.match(r'\w+', text) and \
                     len(text) > 2:
+
+                # Remove punctuations
+                text = text.translate(table, string.punctuation)
                 saida.append(text)
 
         return saida
