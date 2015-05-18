@@ -647,6 +647,7 @@ class StatusBase(LBSociam):
             select=select,
             limit=None,
             order_by=orderby,
+            literal="document->>'location' <> '{}'",
             offset=0
         )
         url = self.documentrest.rest_url
@@ -672,6 +673,7 @@ class StatusBase(LBSociam):
 
         # JSON
         status_dict = conv.document2dict(self.lbbase, result)
+
         # Manually add id_doc
         status_dict['_metadata'] = dict()
         status_dict['_metadata']['id_doc'] = id_doc
@@ -680,53 +682,28 @@ class StatusBase(LBSociam):
         tokenized = srl.srl_tokenize(status_dict['text'])
         if tokenized.get('arg_structures') is not None:
             status_dict['arg_structures'] = tokenized.get('arg_structures')
+
         if tokenized.get('tokens') is not None:
             status_dict['tokens'] = tokenized.get('tokens')
 
         # Now try to find location
         status_dict = location.get_location(status_dict)
 
-        # Get hashtags
+        # Process tokens if selected
+        dictionary_base = dic.DictionaryBase(
+            dic_base=self.dictionary_base
+        )
+        result = dictionary.process_tokens_dict(status_dict, dictionary_base)
+        log.debug("Corpus da tokenização calculado. id_doc = %s", id_doc)
+
+        # Extract hashtags
         status_dict = self.get_hashtags_dict(status_dict)
 
-        # FIXME: Isso aqui precisa ser resolvido na liblightbase
-        # Put status from base in LB Status Object
-        #status = lbstatus.Status(
-        #    origin=result.origin,
-        #    inclusion_date=datetime.datetime.strptime(result.inclusion_date, "%d/%m/%Y"),
-        #    search_term=result.search_term,
-        #    text=result.text,
-        #    source=result.source,
-        #    status_base=self.status_base,
-        #    tokens=tokenized.get('tokens'),
-        #    arg_structures=tokenized.get('arg_structures')
-        #)
-        #status.srl_tokenize()
-        #print(status.tokens)
-        #print(status.arg_structures)
-        try:
-            self.documentrest.update(
-                status_dict['_metadata']['id_doc'],
-                json.dumps(status_dict)
-            )
-            # FIXME: Esse método só vai funcionar quando a liblightbase estiver ok
-            # status.update(id_doc=result._metadata.id_doc)
-        except:
-            exctype, value = sys.exc_info()[:2]
-            log.error("Error updating document id = %d\n%s" % (status_dict['_metadata']['id_doc'], value))
-            return False
+        # Calculate category
+        status_dict = self.get_category(status_dict)
 
-        # Process tokens
-        rest_url = self.documentrest.rest_url
-        rest_url += "/" + self.lbbase._metadata.name + "/doc/"
-        rest_url += str(status_dict['_metadata']['id_doc'])
-        params = {
-            'status_id': status_dict['_metadata']['id_doc'],
-            'rest_url': rest_url,
-            'dictionary_base': dic.DictionaryBase(dic_base=self.dictionary_base)
-        }
-        result = dictionary.process_tokens(params)
-        log.debug("Corpus da tokenização calculado: id_doc = %s", status_dict['_metadata']['id_doc'])
+        # Now update document back
+        self.documentrest.update(id_doc, json.dumps(status_dict))
 
         return True
 
@@ -831,6 +808,25 @@ class StatusBase(LBSociam):
         response = results['results'][0]['_metadata']['id_doc']
 
         return response
+
+    def get_category(self, status_dict):
+        """
+        Find category for this status
+
+        :param status_dict: Status dict to be inserted back on the base
+        :return dict: Identified category
+        """
+        # Consider always training base for the model
+        status_base = StatusBase()
+
+        # Use default status base to calculate LDA Model
+        category = lda.get_category(
+            status_dict,
+            status_base,
+            self.crimes_base
+        )
+
+        return category
 
 status_base = StatusBase()
 StatusClass = status_base.metaclass

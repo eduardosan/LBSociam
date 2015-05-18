@@ -24,6 +24,7 @@ class Twitter(LBSociam):
                  dictionary_base=None,
                  debug=False,
                  term=None):
+
         LBSociam.__init__(self)
         self.debug = debug
         self.term = term

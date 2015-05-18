@@ -94,6 +94,7 @@ def get_category(status,
                  status_base,
                  crimes_base,
                  n_topics=4):
+
     t0 = time.clock()
     c = corpus.get_events_corpus(status_base)
     t1 = time.clock() - t0
