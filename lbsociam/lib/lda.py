@@ -35,15 +35,15 @@ def crime_topics(
     t0 = time.clock()
     c = corpus.get_events_corpus(status_base)
     t1 = time.clock() - t0
-    log.debug("TOPICS: Time to generate Corpus for topics: %s seconds", t1)
+    log.info("TOPICS: Time to generate Corpus for topics: %s seconds", t1)
 
     t0 = time.clock()
     lda = get_lda(c, n_topics)
     t1 = time.clock() - t0
-    log.debug("TOPICS: Time to generate LDA Model in base %s for %s topics: %s seconds",
-              status_base.lbbase.metadata.name,
-              n_topics,
-              t1)
+    log.info("TOPICS: Time to generate LDA Model in base %s for %s topics: %s seconds",
+             status_base.lbbase.metadata.name,
+             n_topics,
+             t1)
 
     topics_list = lda.show_topics(num_topics=n_topics, formatted=False)
     base_info = status_base.get_base()
@@ -101,15 +101,15 @@ def get_category(status,
     t0 = time.clock()
     c = corpus.get_events_corpus(status_base)
     t1 = time.clock() - t0
-    log.debug("CATEGORY: Time to generate Corpus: %s seconds", t1)
+    log.info("CATEGORY: Time to generate Corpus: %s seconds", t1)
 
     t0 = time.clock()
     lda = get_lda(c, n_topics)
     t1 = time.clock() - t0
-    log.debug("CATEGORY: Time to generate LDA Model in base %s for %s topics: %s seconds",
-              status_base.lbbase.metadata.name,
-              n_topics,
-              t1)
+    log.info("CATEGORY: Time to generate LDA Model in base %s for %s topics: %s seconds",
+             status_base.lbbase.metadata.name,
+             n_topics,
+             t1)
 
     # Produce sorted list of probabilities
     if status.get('events_tokens') is not None:
@@ -138,6 +138,7 @@ def get_category(status,
             'category_probability': sorted_vec_lda[0][1]
         }
     else:
+        log.error("CATEGORY: Not found for status id = %s", status['_metadata']['id_doc'])
         status['category'] = {}
 
     return status

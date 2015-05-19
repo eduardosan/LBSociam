@@ -767,7 +767,7 @@ class StatusBase(LBSociam):
         """
         status_dict = self.get_hashtags_dict(status_dict_orig)
 
-        if len(status_dict['hastags']) > 0:
+        if len(status_dict['hashtags']) > 0:
             # Don't update if there's no hashtags
             return True
 
@@ -803,6 +803,9 @@ class StatusBase(LBSociam):
             params=params
         )
         results = result.json()
+        if results.get('result_count') is None:
+            return None
+
         if results['result_count'] == 0:
             return None
 
@@ -962,8 +965,8 @@ class Status(StatusClass):
         document = self.status_to_json()
         try:
             result = self.status_base.documentrest.create(document)
-        except HTTPError, err:
-            log.error(err.strerror)
+        except HTTPError as err:
+            log.error("STATUS: Error inserting status!!!")
 
             # Try to search document with same source
             result = self.status_base.search_equal(self.source)

@@ -4,7 +4,8 @@ __author__ = 'eduardo'
 
 import logging
 import requests
-from requests.exceptions import HTTPError
+import time
+from requests.exceptions import HTTPError, ConnectionError
 from lbsociam import LBSociam
 from liblightbase import lbrest
 from liblightbase.lbbase.struct import Base, BaseMetadata
@@ -302,6 +303,12 @@ class Dictionary(dictionary_base.metaclass):
         document = self.dictionary_to_json()
         try:
             result = self.dictionary_base.documentrest.create(document)
+        except ConnectionError as err:
+            log.error("DICTIONARY:\n%s", err)
+
+            # Try to connect again
+            time.sleep(1)
+            return self.create_dictionary()
         except HTTPError as err:
             log.error(err.strerror)
 
@@ -324,10 +331,17 @@ class Dictionary(dictionary_base.metaclass):
         vars = {
             'value': document
         }
-        response = requests.put(
-            url=url,
-            data=vars
-        )
+        try:
+            response = requests.put(
+                url=url,
+                data=vars
+            )
+        except ConnectionError as e:
+            # Try again
+            log.error("DICIONARY:\n%s", e)
+
+            time.sleep(1)
+            return self.update(id_doc)
 
         # Raise any update errors
         response.raise_for_status()
@@ -349,10 +363,18 @@ class Dictionary(dictionary_base.metaclass):
         }
 
         url = self.dictionary_base.lbgenerator_rest_url + '/' + self.dictionary_base.lbbase.metadata.name + '/doc'
-        result = requests.get(
-            url=url,
-            params=params
-        )
+        try:
+            result = requests.get(
+                url=url,
+                params=params
+            )
+        except ConnectionError as e:
+            # Try again
+            log.error("DICTIONARY:\n%s", e)
+
+            time.sleep(1)
+            return self.get_id_doc()
+
         results = result.json()
         if results.get('results') is None:
             return None

@@ -91,7 +91,7 @@ def get_location(status, cache=True):
             if re.match('.*-LOC', argument_name) is not None:
                 # Convert list os values to string
                 location = " ".join(argument['argument_value'])
-                log.debug("LOCATION: string match for argument_name = %s. Location = %s", argument_name, location)
+                log.info("LOCATION: string match for argument_name = %s. Location = %s", argument_name, location)
                 # Try to use cache first
                 if cache:
                     result = location_base.get_location(location)
@@ -172,7 +172,7 @@ def get_location(status, cache=True):
                     return status
 
     # If I'm here, it was not possible to find the location
-    log.error("Location not found for status id = %s", status['_metadata']['id_doc'])
+    log.error("LOCATION: Location not found for status id = %s", status['_metadata']['id_doc'])
     del status['location']
 
     return status
@@ -194,7 +194,7 @@ def maps_search(location):
             # Set sleep time to None
             set_wakeup_time(None)
         else:
-            log.debug("Wakeup time %s not reache at %s", time.ctime(wakeup_time), time.ctime())
+            log.debug("Wakeup time %s not reached at %s", time.ctime(wakeup_time), time.ctime())
             return None
 
     maps = gmaps.GMaps()
@@ -214,15 +214,15 @@ def maps_search(location):
         return None
 
     except ApiError as e:
-        log.error("Location not found\n%s", e)
+        log.error("LOCATION: Location not found\n%s", e)
         return None
 
     except TransportError as e:
-        log.error("Location not found\n%s", e)
+        log.error("LOCATION: Location not found\n%s", e)
         return None
 
     except Timeout as e:
-        log.error("Location not found\n%s", e)
+        log.error("LOCATION: Location not found\n%s", e)
         return None
 
     # As a start, select first random result

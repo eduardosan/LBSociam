@@ -160,11 +160,12 @@ class Twitter(LBSociam):
 
             if tokenize:
                 # SRL tokenize
-                tokenized = srl.srl_tokenize(status_dict['text'])
-                if tokenized.get('arg_structures') is not None:
-                    status_dict['arg_structures'] = tokenized.get('arg_structures')
-                if tokenized.get('tokens') is not None:
-                    status_dict['tokens'] = tokenized.get('tokens')
+                if status_dict.get('text') is not None:
+                    tokenized = srl.srl_tokenize(status_dict['text'])
+                    if tokenized.get('arg_structures') is not None:
+                        status_dict['arg_structures'] = tokenized.get('arg_structures')
+                    if tokenized.get('tokens') is not None:
+                        status_dict['tokens'] = tokenized.get('tokens')
 
             # Now try to find location
             status_dict = location.get_location(status_dict)
@@ -172,9 +173,10 @@ class Twitter(LBSociam):
             # Process tokens if selected
             result = dictionary.process_tokens_dict(status_dict, self.dictionary_base)
             log.debug("Corpus da tokenização calculado. id_doc = %s", retorno)
+            status_dict = result['status']
 
             # Extract hashtags
-            self.status_base.process_hashtags_dict(status_dict)
+            status_dict = self.status_base.get_hashtags_dict(status_dict)
 
             # Calculate category
             status_dict = status.get_category(status_dict)
