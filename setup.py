@@ -22,7 +22,7 @@ requires = [
 setup(name='LBSociam',
       version='0.4',
       description='LBSociam',
-      long_description=README + '\n\n' +  CHANGES,
+      long_description=README + '\n\n' + CHANGES,
       classifiers=[
         "Programming Language :: Python",
         "Framework :: Nltk",
