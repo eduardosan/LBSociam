@@ -365,6 +365,141 @@ class StatusBase(LBSociam):
             content=category_list
         )
 
+        # Brasil City
+        city_list = Content()
+
+        city_id = Field(**dict(
+            name='city_id',
+            alias='City ID',
+            description='Id for city in LBGeo database',
+            datatype='Integer',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        city_list.append(city_id)
+
+        city_name = Field(**dict(
+            name='city_name',
+            alias='City Name',
+            description='City name in LBGeo database',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        city_list.append(city_name)
+
+        city_state_id = Field(**dict(
+            name='city_state_id',
+            alias='City State ID',
+            description='Id for state in LBGeo database',
+            datatype='Integer',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        city_list.append(city_state_id)
+
+        state_name = Field(**dict(
+            name='state_name',
+            alias='State Name',
+            description='State Name in LBGeo database',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        city_list.append(state_name)
+
+        state_short_name = Field(**dict(
+            name='state_short_name',
+            alias='UF',
+            description='UF in LBGeo database',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        city_list.append(state_short_name)
+
+        state_slug = Field(**dict(
+            name='state_slug',
+            alias='Stte Slug',
+            description='State Slug in LBGeo database',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        city_list.append(state_slug)
+
+        city_slug = Field(**dict(
+            name='city_slug',
+            alias='City Slug',
+            description='City Slug in LBGeo database',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        city_list.append(city_slug)
+
+        city_lat = Field(**dict(
+            name='city_lat',
+            alias='City Latitude',
+            description='City Latitude in LBGeo database',
+            datatype='Decimal',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        city_list.append(city_lat)
+
+        city_lng = Field(**dict(
+            name='city_lng',
+            alias='City Longitude',
+            description='City Longitude in LBGeo database',
+            datatype='Decimal',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        city_list.append(city_lng)
+
+        city_distance = Field(**dict(
+            name='city_distance',
+            alias='City Distance',
+            description='Distance from city in LBGeo database',
+            datatype='Decimal',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        city_list.append(city_distance)
+
+        city_metadata = GroupMetadata(**dict(
+            name='brasil_city',
+            alias='City in Brasil',
+            description='City in Brasil identified by LBGeo',
+            multivalued=False
+        ))
+
+        brasil_city = Group(
+            metadata=city_metadata,
+            content=city_list
+        )
+
         base_metadata = BaseMetadata(**dict(
             name=self.status_base,
             description='Status from social networks',
@@ -393,6 +528,7 @@ class StatusBase(LBSociam):
         content_list.append(location)
         content_list.append(hashtags)
         content_list.append(category)
+        content_list.append(brasil_city)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -831,6 +967,73 @@ class StatusBase(LBSociam):
         )
 
         return category
+
+    def process_geo(self, id_doc, max_distance=50000):
+        """
+        Get Brasil city distance from document
+        :param max_distance: Max distance (Meters) to consider
+        :return: JSON with Geo information from LBGeo
+        """
+        document = self.get_document(id_doc)
+        status_dict = conv.document2dict(self.lbbase, document)
+        if status_dict.get('location') is None:
+            if status_dict.get('arg_structures') is not None:
+                # Now try to find location again
+                status_dict['_metadata'] = dict()
+                status_dict['_metadata']['id_doc'] = id_doc
+                status_dict = location.get_location(status_dict)
+
+                if status_dict.get('location') is None:
+                    log.error("Location not available for document id = %s", id_doc)
+                    return None
+            else:
+                log.error("Location not available for document id = %s", id_doc)
+                return None
+
+        params = {
+            'lat': status_dict['location']['latitude'],
+            'lng': status_dict['location']['longitude']
+        }
+
+        url = self.geo_url + '/city'
+        result = requests.post(
+            url=url,
+            data=json.dumps(params)
+        )
+
+        # Check for Exception
+        try:
+            result.raise_for_status()
+        except HTTPError as e:
+            log.error("Connection error in id_doc = %s\n%s", id_doc, e.message)
+            return None
+
+        try:
+            city = result.json()
+        except ValueError as e:
+            log.error("Error parsing response for id_doc = %s\n%s", id_doc, e.message)
+            return None
+
+        # Check for max distance
+        if float(city['city_distance']) > float(max_distance):
+            # Do not take this distance
+            log.debug("Distance = %s bigger than maximum = %s", city['city_distance'], max_distance)
+            return None
+
+        # Now update document with city
+        status_dict['brasil_city'] = city
+        try:
+            self.documentrest.update(
+                id_doc,
+                json.dumps(status_dict)
+            )
+            # FIXME: Esse método só vai funcionar quando a liblightbase estiver ok
+            # status.update(id_doc=result._metadata.id_doc)
+        except:
+            exctype, value = sys.exc_info()[:2]
+            log.error("Error updating document id = %d\n%s" % (id_doc, value))
+            return True
+
 
 status_base = StatusBase()
 StatusClass = status_base.metaclass

@@ -29,6 +29,7 @@ access_secret =
 [lbgenerator]
 rest_url = http://localhost/api
 es_url = http://localhost:9200/lbsociam
+geo_url = http://localhost/lbgeo
 
 [maps]
 api_key =
