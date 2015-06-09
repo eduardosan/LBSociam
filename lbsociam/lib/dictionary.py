@@ -276,11 +276,11 @@ def process_tokens_dict(status_dict, dictionary_base):
                                     try:
                                         if status_dict['_metadata']['id_doc'] not in dic_elm.status_list:
                                             dic_elm.frequency += 1
-                                            dic_elm.status_list.append(status_dict['_metadata']['id_doc'])
+                                            # dic_elm.status_list.append(status_dict['_metadata']['id_doc'])
                                     except AttributeError:
                                         # No frequency yet
                                         dic_elm.frequency = 1
-                                        dic_elm.status_list = [status_dict['_metadata']['id_doc']]
+                                        # dic_elm.status_list = [status_dict['_metadata']['id_doc']]
                                     document = dic_elm.update(id_doc)
                                     log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
 
@@ -313,12 +313,12 @@ def process_tokens_dict(status_dict, dictionary_base):
         try:
             if status_dict['_metadata']['id_doc'] not in dic_elm.status_list:
                 dic_elm.frequency += 1
-                #dic_elm.status_list = [id_doc]
-                dic_elm.status_list.append(status_dict['_metadata']['id_doc'])
+                # dic_elm.status_list = [id_doc]
+                # dic_elm.status_list.append(status_dict['_metadata']['id_doc'])
         except AttributeError:
             # No frequency yet
             dic_elm.frequency = 1
-            dic_elm.status_list = [status_dict['_metadata']['id_doc']]
+            # dic_elm.status_list = [status_dict['_metadata']['id_doc']]
         document = dic_elm.update(id_doc)
         log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
 

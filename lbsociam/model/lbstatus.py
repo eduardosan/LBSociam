@@ -968,14 +968,16 @@ class StatusBase(LBSociam):
 
         return category
 
-    def process_geo(self, id_doc, max_distance=50000):
+    def process_geo_dict(self, id_doc, max_distance=50000, status_dict=None):
         """
         Get Brasil city distance from document
         :param max_distance: Max distance (Meters) to consider
-        :return: JSON with Geo information from LBGeo
+        :return: Dict with Geo information from LBGeo
         """
-        document = self.get_document(id_doc)
-        status_dict = conv.document2dict(self.lbbase, document)
+        if status_dict is None:
+            document = self.get_document(id_doc)
+            status_dict = conv.document2dict(self.lbbase, document)
+
         if status_dict.get('location') is None:
             if status_dict.get('arg_structures') is not None:
                 # Now try to find location again
@@ -985,10 +987,10 @@ class StatusBase(LBSociam):
 
                 if status_dict.get('location') is None:
                     log.error("Location not available for document id = %s", id_doc)
-                    return None
+                    return status_dict
             else:
                 log.error("Location not available for document id = %s", id_doc)
-                return None
+                return status_dict
 
         params = {
             'lat': status_dict['location']['latitude'],
@@ -1006,22 +1008,32 @@ class StatusBase(LBSociam):
             result.raise_for_status()
         except HTTPError as e:
             log.error("Connection error in id_doc = %s\n%s", id_doc, e.message)
-            return None
+            return status_dict
 
         try:
             city = result.json()
         except ValueError as e:
             log.error("Error parsing response for id_doc = %s\n%s", id_doc, e.message)
-            return None
+            return status_dict
 
         # Check for max distance
         if float(city['city_distance']) > float(max_distance):
             # Do not take this distance
             log.debug("Distance = %s bigger than maximum = %s", city['city_distance'], max_distance)
-            return None
+            return status_dict
 
         # Now update document with city
         status_dict['brasil_city'] = city
+
+        return status_dict
+
+    def process_geo(self, id_doc, max_distance=50000):
+        """
+        Get Brasil city distance from document
+        :param max_distance: Max distance (Meters) to consider
+        :return: JSON with Geo information from LBGeo
+        """
+        status_dict = self.process_geo_dict(id_doc, max_distance)
         try:
             self.documentrest.update(
                 id_doc,
@@ -1032,7 +1044,9 @@ class StatusBase(LBSociam):
         except:
             exctype, value = sys.exc_info()[:2]
             log.error("Error updating document id = %d\n%s" % (id_doc, value))
-            return True
+            return None
+
+        return True
 
 
 status_base = StatusBase()
@@ -1172,8 +1186,12 @@ class Status(StatusClass):
             log.error("STATUS: Error inserting status!!!")
 
             # Try to search document with same source
-            result = self.status_base.search_equal(self.source)
-            return result
+            try:
+                result = self.status_base.search_equal(self.source)
+            except:
+                exctype, value = sys.exc_info()[:2]
+                log.error("STATUS: Status not found!!!\n%s" % (value))
+                return None
 
         return result
 

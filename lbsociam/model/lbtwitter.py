@@ -148,7 +148,8 @@ class Twitter(LBSociam):
             retorno = status.create_status()
 
             if retorno is None:
-                log.error("Error inserting status %s on Base" % elm.text)
+                # log.error("Error inserting status %s on Base" % elm.text)
+                log.error("Error inserting status  on Base" % elm.text)
 
                 continue
 
@@ -172,7 +173,7 @@ class Twitter(LBSociam):
 
             # Process tokens if selected
             result = dictionary.process_tokens_dict(status_dict, self.dictionary_base)
-            log.debug("Corpus da tokenização calculado. id_doc = %s", retorno)
+            log.info("Corpus da tokenizacao calculado. id_doc = %s", retorno)
             status_dict = result['status']
 
             # Extract hashtags
@@ -180,6 +181,12 @@ class Twitter(LBSociam):
 
             # Calculate category
             status_dict = status.get_category(status_dict)
+
+            # Get brasil city information
+            status_dict = self.status_base.process_geo_dict(
+                id_doc=retorno,
+                status_dict=status_dict
+            )
 
             # Now update document back
             self.status_base.documentrest.update(retorno, json.dumps(status_dict))
