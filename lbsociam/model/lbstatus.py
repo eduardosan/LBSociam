@@ -608,15 +608,30 @@ class StatusBase(LBSociam):
         else:
             raise IOError('Error getting LB Base structure')
 
-    def get_document_ids(self, offset=0):
+    def get_document_ids(self, offset=0, start_date=None, end_date=None):
         """
         Build a lis with all document ID's
         """
         orderby = OrderBy(asc=['id_doc'])
         select = ['id_doc']
+        literal = None
+
+        # Check if there are date filters
+        if start_date is not None:
+            if end_date is None:
+                # Default to now
+                end_date = datetime.datetime.now()
+
+            # Use search by inclusion_datetime
+            literal = """inclusion_datetime between '%s'::date and '%s'::date""" % (
+                start_date.strftime("%Y-%m-%d"),
+                end_date.strftime("%Y-%m-%d")
+            )
+
         search = Search(
             select=select,
             limit=None,
+            literal=literal,
             order_by=orderby,
             offset=offset
         )

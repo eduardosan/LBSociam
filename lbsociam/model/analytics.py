@@ -56,6 +56,16 @@ class AnalyticsBase(LBSociam):
             multivalued=False,
             required=True
         ))
+
+        analysis_end_date = Field(**dict(
+            name='analysis_end_date',
+            description='Analysis end date',
+            alias='analysis_date',
+            datatype='DateTime',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
         
         total_status = Field(**dict(
             name='total_status',
@@ -86,6 +96,98 @@ class AnalyticsBase(LBSociam):
             multivalued=False,
             required=False
         ))
+
+        # Add states analysis
+        state_list = Content()
+
+        state_uf = Field(**dict(
+            name='state_uf',
+            description='State UF',
+            alias='UF',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        state_list.append(state_uf)
+
+        state_name = Field(**dict(
+            name='state_name',
+            description='State Name',
+            alias='Estado',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        state_list.append(state_name)
+
+        category_list = Content()
+
+        category_id_doc = Field(**dict(
+            name='category_id_doc',
+            description='Category ID',
+            alias='ID Categoria',
+            datatype='Integer',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        category_list.append(category_id_doc)
+
+        category_name = Field(**dict(
+            name='category_name',
+            description='Category Name',
+            alias='Categoria',
+            datatype='Text',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        category_list.append(category_name)
+
+        category_status = Field(**dict(
+            name='category_status',
+            description='Category Status Ocurrences',
+            alias='Status',
+            datatype='Integer',
+            indices=[],
+            multivalued=False,
+            required=False
+        ))
+
+        category_list.append(category_status)
+
+        category_metadata = GroupMetadata(**dict(
+            name='category',
+            alias='Categoria',
+            description='Categories data',
+            multivalued=True
+        ))
+
+        category = Group(
+            metadata=category_metadata,
+            content=category_list
+        )
+
+        # Add to state group
+        state_list.append(category)
+
+        state_metadata = GroupMetadata(**dict(
+            name='state',
+            alias='Estado',
+            description='States Data',
+            multivalued=True
+        ))
+
+        state = Group(
+            metadata=state_metadata,
+            content=state_list
+        )
         
         status_list = Content()
 
@@ -151,10 +253,12 @@ class AnalyticsBase(LBSociam):
 
         content_list = Content()
         content_list.append(analysis_date)
+        content_list.append(analysis_end_date)
         content_list.append(total_status)
         content_list.append(total_crimes)
         content_list.append(status_crimes)
         content_list.append(total_positives)
+        content_list.append(state)
 
         lbbase = Base(
             metadata=base_metadata,
@@ -313,6 +417,81 @@ class AnalyticsBase(LBSociam):
 
         return True
 
+    def process_response_categories(self, status_dict, id_doc):
+        # Get actual analytics
+        entry_dict = self.get_document(id_doc)
+
+        # Manually add id_doc
+        entry_dict['_metadata'] = dict()
+        entry_dict['_metadata']['id_doc'] = id_doc
+
+        # Check mandatory attributes on status
+        if status_dict is None:
+            log.debug("Empty status!!!")
+            return False
+
+        if status_dict.get('brasil_city') is None:
+            log.debug("Brasil City not found for status ID = %s", status_dict['_metadata']['id_doc'])
+            return False
+
+        if status_dict.get('category') is None:
+            log.debug("Category not found for status ID = %s", status_dict['_metadata']['id_doc'])
+            return False
+
+        if status_dict['category'].get('category_id_doc') is None:
+            log.debug("Category ID not found for status ID = %s", status_dict['_metadata']['id_doc'])
+            return False
+
+        # Now build statistics for the attributes
+        if entry_dict.get('state') is None:
+            entry_dict['state'] = list()
+
+        # Now try to find specific state
+        try:
+            uf = (item for item in entry_dict['state'] if item['state_uf'] == status_dict['brasil_city']['state_short_name']).next()
+            state_index = entry_dict['state'].index(uf)
+
+            # Now try to find category
+            try:
+                cat = (item for item in entry_dict['state'][state_index]['category'] if item['category_id_doc'] == status_dict['category']['category_id_doc']).next()
+                cat_index = entry_dict['state'][state_index]['category'].index(cat)
+
+                # Finally update category frequency
+                log.debug("Increasing count. Status = %s Category = %s", status_dict['_metadata']['id_doc'], status_dict['category']['category_id_doc'])
+                entry_dict['state'][state_index]['category'][cat_index]['category_status'] += 1
+
+            except StopIteration as e:
+                entry_dict['state'][state_index]['category'].append({
+                    'category_id_doc': status_dict['category']['category_id_doc'],
+                    'category_status': 1
+                })
+
+        except StopIteration as e:
+            # In this case there is no available
+            entry_dict['state'].append({
+                'state_uf': status_dict['brasil_city']['state_short_name'],
+                'category': [{
+                    'category_id_doc': status_dict['category']['category_id_doc'],
+                    'category_status': 1
+                }]
+            })
+
+        entry_dict['total_status'] += 1
+
+        # Finally update entry back on status
+        try:
+            result = self.update_document(id_doc, entry_dict)
+        except HTTPError as e:
+            log.error("Error updating status\n%s", e.message)
+            result = None
+
+        if result is None:
+            log.error("Error updating total status positives and negatives")
+
+        log.info("Processing finished %s", result)
+
+        return True
+
 analytics_base = AnalyticsBase()
 
 
@@ -350,6 +529,29 @@ class Analytics(analytics_base.metaclass):
             value = datetime.datetime.strptime(value, "%d/%m/%Y %H:%M:%S").strftime("%d/%m/%Y %H:%M:%S")
 
         analytics_base.metaclass.analysis_date.__set__(self, value)
+
+    @property
+    def analysis_end_date(self):
+        """
+        Inclusion date
+        :return:
+        """
+        return analytics_base.metaclass.analysis_date.__get__(self)
+
+    @analysis_end_date.setter
+    def analysis_end_date(self, value):
+        """
+        Inclusion date setter
+        """
+        if isinstance(value, datetime.datetime):
+            value = value.strftime("%d/%m/%Y %H:%M:%S")
+        elif value is None:
+            value = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        else:
+            # Try to format string
+            value = datetime.datetime.strptime(value, "%d/%m/%Y %H:%M:%S").strftime("%d/%m/%Y %H:%M:%S")
+
+        analytics_base.metaclass.analysis_end_date.__set__(self, value)
 
     def analytics_to_dict(self):
         """
