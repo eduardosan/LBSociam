@@ -1063,6 +1063,50 @@ class StatusBase(LBSociam):
 
         return True
 
+    def get_status_probability(self, category_id_doc, start_date, end_date=None):
+        """
+        Build a lis with all document ID's
+        """
+        orderby = OrderBy(asc=['id_doc'])
+        select = ['category_id_doc', 'category_probability']
+
+        # Check if there are date filters
+        literal = None
+        if start_date is not None:
+            if end_date is None:
+                # Default to now
+                end_date = datetime.datetime.now()
+
+            # Use search by inclusion_datetime
+            literal = """inclusion_datetime between '%s'::date and '%s'::date """ % (
+                start_date.strftime("%Y-%m-%d"),
+                end_date.strftime("%Y-%m-%d")
+            )
+        else:
+            log.error("start_date must be supplied")
+            return None
+
+        # look for category
+        literal += """ and category_id_doc = %s""" % category_id_doc
+
+        search = Search(
+            select=select,
+            limit=None,
+            order_by=orderby,
+            literal=literal
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        collection = response.json()
+
+        return collection
+
 
 status_base = StatusBase()
 StatusClass = status_base.metaclass

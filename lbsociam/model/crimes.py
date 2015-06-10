@@ -236,7 +236,7 @@ class CrimesBase(LBSociam):
         """
         Get document by ID on base
         """
-        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc/' + id_doc
+        url = self.lbgenerator_rest_url + '/' + self.lbbase.metadata.name + '/doc/' + str(id_doc)
         response = requests.get(url)
         if response.status_code > 300:
             return None

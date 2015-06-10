@@ -16,6 +16,7 @@ from liblightbase.lbbase.content import Content
 from liblightbase.lbutils import conv
 from liblightbase.lbsearch.search import *
 from pyramid.response import Response
+from operator import itemgetter
 
 
 log = logging.getLogger()
@@ -491,6 +492,82 @@ class AnalyticsBase(LBSociam):
         log.info("Processing finished %s", result)
 
         return True
+
+    def get_latest_analysis(self, start_date, end_date=None):
+        orderby = OrderBy(asc=['id_doc'])
+        select = ['*']
+
+        # Check if there are date filters
+        literal = None
+        if start_date is not None:
+            if end_date is None:
+                # Default to now
+                end_date = datetime.datetime.now()
+
+            # Use search by inclusion_datetime
+            literal = """analysis_date <= '%s'::date and
+                         to_date(document->>'analysis_end_date'::text, 'YYYY-MM-DD HH24:MI:SS') <= '%s'::date """ % (
+                start_date.strftime("%Y-%m-%d"),
+                end_date.strftime("%Y-%m-%d")
+            )
+        else:
+            log.error("start_date must be supplied")
+            return None
+
+        search = Search(
+            select=select,
+            limit=None,
+            order_by=orderby,
+            literal=literal
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        response_json = response.json()
+        print(response_json)
+        results = response_json['results']
+        if len(results) == 0:
+            return {}
+        else:
+            # Get only latest analysis
+            escolhido = dict()
+            for elm in results:
+                if not escolhido:
+                    escolhido = elm
+                elif int(escolhido['_metadata']['id_doc']) < int(elm['_metadata']['id_doc']):
+                    escolhido = elm
+
+            log.debug(results)
+            log.debug("Escolhido: %s", escolhido)
+
+            return escolhido
+
+    def get_state_analysis(self, start_date, end_date=None):
+        """
+        Get state analysis
+        """
+        analysis = self.get_latest_analysis(
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        output = {
+            'total_status': analysis['total_status']
+        }
+
+        for state in analysis['state']:
+            for cat in state['category']:
+                if output.get(cat['category_id_doc']) is None:
+                    output[cat['category_id_doc']] = dict()
+
+                output[cat['category_id_doc']][state['state_uf']] = cat['category_status']
+
+        return output
 
 analytics_base = AnalyticsBase()
 
