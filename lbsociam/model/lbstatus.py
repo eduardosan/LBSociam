@@ -854,6 +854,12 @@ class StatusBase(LBSociam):
         # Calculate category
         status_dict = self.get_category(status_dict)
 
+        # Get brasil city information
+        status_dict = self.status_base.process_geo_dict(
+            id_doc=id_doc,
+            status_dict=status_dict
+        )
+
         # Now update document back
         self.documentrest.update(id_doc, json.dumps(status_dict))
 
