@@ -614,7 +614,7 @@ class StatusBase(LBSociam):
         """
         orderby = OrderBy(asc=['id_doc'])
         select = ['id_doc']
-        literal = None
+        literal = ""
 
         # Check if there are date filters
         if start_date is not None:
