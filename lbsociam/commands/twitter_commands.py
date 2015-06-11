@@ -295,7 +295,7 @@ class TwitterCommands(command.Command):
         :return: True or False
         """
         try:
-            result = self.status_base.process_tokens(id_doc)
+            result = self.status_base.process_tokens(id_doc, update=False)
         except ConnectionError as e:
             log.error("CONNECTION ERROR: Error processing id_doc = %s\n%s", id_doc, e.message)
             # Try again

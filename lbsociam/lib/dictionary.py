@@ -241,7 +241,7 @@ def insert_from_status(lbstatus,
     return True
 
 
-def process_tokens_dict(status_dict, dictionary_base):
+def process_tokens_dict(status_dict, dictionary_base, update=True):
     dic = corpora.Dictionary()
     stemmer = nltk.stem.RSLPStemmer()
 
@@ -271,7 +271,7 @@ def process_tokens_dict(status_dict, dictionary_base):
                                     dic_elm.frequency = 1
                                     dic_elm.status_list = [status_dict['_metadata']['id_doc']]
                                     document = dic_elm.create_dictionary()
-                                else:
+                                elif update:
                                     # Try to update frequency
                                     try:
                                         if status_dict['_metadata']['id_doc'] not in dic_elm.status_list:
@@ -284,7 +284,8 @@ def process_tokens_dict(status_dict, dictionary_base):
                                     document = dic_elm.update(id_doc)
                                     log.debug("Token repetido: %s. Frequencia atualizada para %s", elm, dic_elm.frequency)
 
-                                tokens.append(elm)
+                                else:
+                                    tokens.append(elm)
                             else:
                                 log.debug("Invalid tokens in %s", elm)
 
@@ -308,7 +309,7 @@ def process_tokens_dict(status_dict, dictionary_base):
         dic_elm.frequency = 1
         dic_elm.status_list = [status_dict['_metadata']['id_doc']]
         document = dic_elm.create_dictionary()
-    else:
+    elif update:
         # Try to update frequency
         try:
             if status_dict['_metadata']['id_doc'] not in dic_elm.status_list:

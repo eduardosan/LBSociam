@@ -813,11 +813,12 @@ class StatusBase(LBSociam):
 
         return collection
 
-    def process_tokens(self, id_doc):
+    def process_tokens(self, id_doc, update=True):
         """
         Process tokens for this id_doc
 
         :param id_doc: Document to be processed
+        :param update: Whether we should update dictionary frequency or not
         :return: True or False
         """
         result = self.get_document(id_doc)
@@ -844,7 +845,7 @@ class StatusBase(LBSociam):
         dictionary_base = dic.DictionaryBase(
             dic_base=self.dictionary_base
         )
-        result = dictionary.process_tokens_dict(status_dict, dictionary_base)
+        result = dictionary.process_tokens_dict(status_dict, dictionary_base, update=update)
         log.debug("Corpus da tokenização calculado. id_doc = %s", id_doc)
         status_dict = result['status']
 
@@ -855,7 +856,7 @@ class StatusBase(LBSociam):
         status_dict = self.get_category(status_dict)
 
         # Get brasil city information
-        status_dict = self.status_base.process_geo_dict(
+        status_dict = self.process_geo_dict(
             id_doc=id_doc,
             status_dict=status_dict
         )
