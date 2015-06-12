@@ -1,13 +1,14 @@
 #!/usr/env python
 # -*- coding: utf-8 -*-
 __author__ = 'eduardo'
-
+import time
 import logging
 import datetime
 import requests
 import json
 from requests.exceptions import HTTPError
 from lbsociam import LBSociam
+from lbsociam.model import lbstatus
 from liblightbase import lbrest
 from liblightbase.lbbase.struct import Base, BaseMetadata
 from liblightbase.lbbase.lbstruct.group import *
@@ -17,6 +18,8 @@ from liblightbase.lbutils import conv
 from liblightbase.lbsearch.search import *
 from pyramid.response import Response
 from operator import itemgetter
+from multiprocessing import Queue, Process
+from requests.exceptions import ConnectionError
 
 
 log = logging.getLogger()
@@ -26,7 +29,7 @@ class AnalyticsBase(LBSociam):
     """
     Criminal data base
     """
-    def __init__(self):
+    def __init__(self, status_base=None):
         """
         Construct for social networks data
         :return:
@@ -41,6 +44,12 @@ class AnalyticsBase(LBSociam):
             base=self.lbbase,
             response_object=False
         )
+
+        # Get status base in constructor
+        if status_base is None:
+            self.status_base = lbstatus.status_base
+        else:
+            self.status_base = status_base
 
     @property
     def lbbase(self):
@@ -569,8 +578,109 @@ class AnalyticsBase(LBSociam):
 
         return output
 
-analytics_base = AnalyticsBase()
+    def create_analysis_categories(self,
+                                   start_date,
+                                   end_date=None,
+                                   offset=0):
+        """
+        Create analysis for the training bases calculating total positives and negatives
+        :param start_date: Analysis start date
+        :param end_date: Analysis end date
+        :param offset: Starting offset
+        :return:
+        """
+        task_queue = Queue()
+        done_queue = Queue()
+        processes = int(self.processes)
 
+        # Get end date
+        if end_date is None:
+            end_date = datetime.datetime.now()
+
+        # First create analysis
+        ana = Analytics(
+            analysis_date=start_date,
+            analysis_end_date=end_date,
+            total_status=0,
+            total_crimes=0,
+            status_crimes=[]
+        )
+
+        id_doc = ana.create_analytics()
+        if id_doc is None:
+            log.error("Error creating analysis")
+
+            return
+
+        self.status_base.documentrest.response_object = False
+
+        # Now run on every status
+        id_document_list = self.status_base.get_document_ids(
+            offset=offset,
+            start_date=start_date,
+            end_date=end_date
+        )
+        for status_id_doc in id_document_list:
+            task_queue.put(status_id_doc)
+
+        for i in range(processes):
+            # Permite o processamento paralelo dos status
+            Process(target=self.worker_categories, args=(task_queue, done_queue)).start()
+
+        # Process responses
+        log.debug("Processing responses")
+        for i in range(len(id_document_list)):
+            status_dict = done_queue.get()
+
+            # Add retry loop if connection errors
+            try:
+                self.process_response_categories(
+                    status_dict=status_dict,
+                    id_doc=id_doc
+                )
+            except ConnectionError as e:
+                log.error("CONNECTION ERROR: connection error on %s\n%s", id_doc, e.message)
+                # Wait one second and retry
+                time.sleep(1)
+                self.process_response_categories(
+                    status_dict=status_dict,
+                    id_doc=id_doc
+                )
+
+        # Tell child processes to stop
+        for i in range(processes):
+            task_queue.put('STOP')
+
+        return id_doc
+
+    # Function run by worker processes
+    def worker_categories(self, inp, output):
+        for func in iter(inp.get, 'STOP'):
+            result = self.process_status_categories(func)
+            output.put(result)
+
+    def process_status_categories(self, status_id_doc):
+        """
+        Process status
+        :param status_id_doc: Status id_doc
+        :return: Status dict stored
+        """
+        try:
+            result = self.status_base.get_document(status_id_doc)
+        except ConnectionError as e:
+            log.error("CONNECTION ERROR: Error processing %s\n%s", status_id_doc, e.message)
+            time.sleep(1)
+            result = self.status_base.get_document(status_id_doc)
+
+        # JSON
+        status_dict = conv.document2dict(self.status_base.lbbase, result)
+        # Manually add id_doc
+        status_dict['_metadata'] = dict()
+        status_dict['_metadata']['id_doc'] = status_id_doc
+
+        return status_dict
+
+analytics_base = AnalyticsBase()
 
 class Analytics(analytics_base.metaclass):
     """
