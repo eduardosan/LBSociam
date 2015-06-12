@@ -723,7 +723,7 @@ class Analytics(analytics_base.metaclass):
         Inclusion date
         :return:
         """
-        return analytics_base.metaclass.analysis_date.__get__(self)
+        return analytics_base.metaclass.analysis_end_date.__get__(self)
 
     @analysis_end_date.setter
     def analysis_end_date(self, value):
