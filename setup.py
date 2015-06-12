@@ -20,7 +20,7 @@ requires = [
 
 
 setup(name='LBSociam',
-      version='0.4',
+      version='0.5',
       description='LBSociam',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
