@@ -538,7 +538,6 @@ class AnalyticsBase(LBSociam):
         # Envia requisição para o REST
         response = requests.get(url, params=vars)
         response_json = response.json()
-        print(response_json)
         results = response_json['results']
         if len(results) == 0:
             return {}
@@ -669,8 +668,11 @@ class AnalyticsBase(LBSociam):
             result = self.status_base.get_document(status_id_doc)
         except ConnectionError as e:
             log.error("CONNECTION ERROR: Error processing %s\n%s", status_id_doc, e.message)
+
+            # Try again in one second
             time.sleep(1)
-            result = self.status_base.get_document(status_id_doc)
+            status_dict = self.process_status_categories(status_id_doc)
+            return status_dict
 
         # JSON
         status_dict = conv.document2dict(self.status_base.lbbase, result)
@@ -679,6 +681,32 @@ class AnalyticsBase(LBSociam):
         status_dict['_metadata']['id_doc'] = status_id_doc
 
         return status_dict
+
+    def get_analysis(self, limit=10):
+        """
+        Get analysis list
+        :param limit: Maximum results
+        :return: JSON with results
+        """
+        orderby = OrderBy(desc=['id_doc'])
+        select = ['*']
+
+        search = Search(
+            select=select,
+            limit=limit,
+            order_by=orderby
+        )
+        url = self.documentrest.rest_url
+        url += "/" + self.lbbase._metadata.name + "/doc"
+        vars = {
+            '$$': search._asjson()
+        }
+
+        # Envia requisição para o REST
+        response = requests.get(url, params=vars)
+        response_json = response.json()
+
+        return response_json
 
 analytics_base = AnalyticsBase()
 
