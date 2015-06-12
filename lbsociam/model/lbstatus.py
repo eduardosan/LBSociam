@@ -776,10 +776,23 @@ class StatusBase(LBSociam):
 
         return collection
 
-    def get_locations(self):
+    def get_locations(self, start_date, end_date=None):
         """
         Get all status with locations
         """
+        literal = "document->>'location' <> '{}' and "
+        # Check if there are date filters
+        if start_date is not None:
+            if end_date is None:
+                # Default to now
+                end_date = datetime.datetime.now()
+
+            # Use search by inclusion_datetime
+            literal += """inclusion_datetime between '%s'::date and '%s'::date""" % (
+                start_date.strftime("%Y-%m-%d"),
+                end_date.strftime("%Y-%m-%d")
+            )
+
         orderby = OrderBy(asc=['positives'])
         select = [
             "id_doc",
@@ -798,7 +811,7 @@ class StatusBase(LBSociam):
             select=select,
             limit=None,
             order_by=orderby,
-            literal="document->>'location' <> '{}'",
+            literal=literal,
             offset=0
         )
         url = self.documentrest.rest_url
@@ -878,10 +891,23 @@ class StatusBase(LBSociam):
 
         return self.process_hashtags_dict(status_dict)
 
-    def get_hashtags(self):
+    def get_hashtags(self, start_date, end_date=None):
         """
         Get a list of identified hashtags
         """
+        literal = "document->>'location' <> '{}' and "
+        # Check if there are date filters
+        if start_date is not None:
+            if end_date is None:
+                # Default to now
+                end_date = datetime.datetime.now()
+
+            # Use search by inclusion_datetime
+            literal = """inclusion_datetime between '%s'::date and '%s'::date""" % (
+                start_date.strftime("%Y-%m-%d"),
+                end_date.strftime("%Y-%m-%d")
+            )
+
         orderby = OrderBy(asc=['id_doc'])
         select = [
             "hashtags"
@@ -890,6 +916,7 @@ class StatusBase(LBSociam):
         search = Search(
             select=select,
             limit=None,
+            literal=literal,
             order_by=orderby,
             offset=0
         )
