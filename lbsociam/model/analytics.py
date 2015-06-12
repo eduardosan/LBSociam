@@ -503,6 +503,12 @@ class AnalyticsBase(LBSociam):
         return True
 
     def get_latest_analysis(self, start_date, end_date=None):
+        """
+        Get latest analysis on dates
+        :param start_date: Start date
+        :param end_date: End date
+        :return: Latest analysis JSON
+        """
         orderby = OrderBy(asc=['id_doc'])
         select = ['*']
 
@@ -609,7 +615,7 @@ class AnalyticsBase(LBSociam):
         if id_doc is None:
             log.error("Error creating analysis")
 
-            return
+            return None
 
         self.status_base.documentrest.response_object = False
 
