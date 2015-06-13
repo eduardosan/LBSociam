@@ -491,6 +491,11 @@ class AnalyticsBase(LBSociam):
         # Finally update entry back on status
         try:
             result = self.update_document(id_doc, entry_dict)
+        except ConnectionError as e:
+            log.error("Error updating analytics id = %s\n%s", id_doc, e.message)
+            # Wait one second and try again
+            time.sleep(1)
+            result = self.process_response_categories(status_dict, id_doc)
         except HTTPError as e:
             log.error("Error updating status\n%s", e.message)
             result = None
